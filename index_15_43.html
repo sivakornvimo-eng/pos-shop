@@ -1,0 +1,3430 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ระบบร้านค้า POS - จักรยานไฟฟ้า</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--surface:#fff;--surface2:#f9f8f5;--border:#e5e3dc;
+  --text:#1a1916;--text2:#6b6860;--text3:#a8a69e;
+  --green:#0d5c42;--gl:#e8f3ee;--gm:#1a8a5e;
+  --red:#c0392b;--rl:#fdf0ee;
+  --yellow:#f59e0b;--yl:#fef9ed;
+  --orange:#d4580a;--ol:#fef0e6;
+  --blue:#1a5fa8;--bl:#e8f0fb;
+  --purple:#6b3fa0;--pl:#f2edfb;
+  --r:10px;--rlg:14px;
+}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+.shell{display:grid;grid-template-columns:1fr 300px;grid-template-rows:52px 1fr;height:100vh}
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:0 14px;background:var(--green);color:#fff;flex-shrink:0}
+.logo{font-size:14px;font-weight:600;margin-right:10px;white-space:nowrap}
+.tabs{display:flex;gap:3px;flex-wrap:wrap}
+.tab{padding:5px 11px;font-size:12px;border-radius:var(--r);cursor:pointer;background:transparent;color:rgba(255,255,255,.7);border:none;font-family:inherit;transition:all .15s;white-space:nowrap}
+.tab:hover{background:rgba(255,255,255,.12);color:#fff}
+.tab.active{background:#fff;color:var(--green);font-weight:500}
+.main{overflow-y:auto;padding:14px;background:var(--bg)}
+.sidebar{border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden}
+
+/* ── Mobile bottom nav ── */
+.mobile-nav{display:none}
+
+/* ── iPad portrait (768–1024px) ── */
+@media(min-width:701px) and (max-width:1024px){
+  .shell{grid-template-columns:1fr;grid-template-rows:52px 1fr}
+  .sidebar{display:none!important}
+  .tabs{gap:2px}
+  .tab{padding:5px 9px;font-size:12px}
+  .veh-grid{grid-template-columns:repeat(3,1fr)!important}
+  .scards{grid-template-columns:repeat(4,1fr)}
+
+  /* iPad bottom nav */
+  .mobile-nav{
+    display:flex;
+    position:fixed;bottom:0;left:0;right:0;
+    background:var(--surface);border-top:1px solid var(--border);
+    z-index:150;
+    height:calc(60px + env(safe-area-inset-bottom));
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .mobile-nav button{
+    flex:1;border:none;background:transparent;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;font-family:'Sarabun',sans-serif;font-size:11px;color:var(--text3);
+    cursor:pointer;transition:all .15s;padding:0;
+  }
+  .mobile-nav button .mn-icon{font-size:22px;line-height:1}
+  .mobile-nav button.active{color:var(--green)}
+  .tabs{display:none}
+  .main{padding:14px;padding-bottom:80px}
+
+  /* Cart FAB */
+  .cart-fab{
+    display:flex;position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));right:20px;
+    background:var(--green);color:#fff;border:none;border-radius:99px;
+    padding:12px 20px;font-size:14px;font-weight:600;font-family:'Sarabun',sans-serif;
+    box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;align-items:center;gap:8px;
+    z-index:140;
+  }
+  .cart-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:160}
+  .cart-modal{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+    width:480px;
+    background:var(--surface);border-radius:18px 18px 0 0;
+    box-shadow:0 -4px 24px rgba(0,0,0,.18);z-index:170;
+    max-height:75vh;display:flex;flex-direction:column;
+  }
+  .cart-modal-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .cart-modal-body{overflow-y:auto;flex:1;padding:8px 12px}
+  .cart-modal-footer{padding:10px 14px;border-top:1px solid var(--border)}
+}
+
+/* ── iPad landscape (1025px+) ── */
+@media(min-width:1025px){
+  .shell{grid-template-columns:1fr 320px}
+  .veh-grid{grid-template-columns:repeat(4,1fr)!important}
+  .mobile-nav{display:none!important}
+  .cart-fab{display:none!important}
+}
+
+@media(max-width:700px){
+  .shell{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}
+  .topbar{padding:0 10px;gap:4px;flex-wrap:nowrap;min-height:46px}
+  .logo{font-size:12px;margin-right:4px}
+  .tabs{display:none}
+  .topbar-clock{display:none}
+  .main{padding:10px;padding-bottom:90px}
+  .sidebar{display:none!important}
+
+  /* Bottom nav bar */
+  .mobile-nav{
+    display:flex;
+    position:fixed;bottom:0;left:0;right:0;
+    background:var(--surface);border-top:1px solid var(--border);
+    z-index:150;
+    height:calc(56px + env(safe-area-inset-bottom));
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .mobile-nav button{
+    flex:1;border:none;background:transparent;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;font-family:'Sarabun',sans-serif;font-size:12px;color:var(--text3);
+    cursor:pointer;transition:all .15s;padding:0;
+  }
+  .mobile-nav button .mn-icon{font-size:24px;line-height:1}
+  .mobile-nav button.active{color:var(--green)}
+  .mobile-nav button.active .mn-icon{transform:scale(1.1)}
+
+  /* Cart FAB for POS tab */
+  .cart-fab{
+    display:flex;position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));right:14px;
+    background:var(--green);color:#fff;border:none;border-radius:99px;
+    padding:10px 18px;font-size:14px;font-weight:600;font-family:'Sarabun',sans-serif;
+    box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;align-items:center;gap:8px;
+    z-index:140;
+  }
+
+  /* Cart modal for mobile */
+  .cart-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:160}
+  .cart-modal{
+    position:fixed;bottom:0;left:0;right:0;
+    background:var(--surface);border-radius:18px 18px 0 0;
+    box-shadow:0 -4px 24px rgba(0,0,0,.18);z-index:170;
+    max-height:80vh;display:flex;flex-direction:column;
+  }
+  .cart-modal-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .cart-modal-body{overflow-y:auto;flex:1;padding:8px 12px}
+  .cart-modal-footer{padding:10px 14px;border-top:1px solid var(--border)}
+
+  /* Grid adjustments */
+  .veh-grid{grid-template-columns:repeat(2,1fr)!important}
+  .scards{grid-template-columns:repeat(2,1fr)!important}
+  .form-grid{grid-template-columns:1fr!important}
+  .form-full{grid-column:1/-1}
+  table{font-size:12px}
+  th,td{padding:6px 6px}
+
+  /* Modal full width */
+  .modal{width:calc(100vw - 24px)!important;margin:0 12px}
+  .overlay{align-items:flex-end;padding-bottom:0}
+  .overlay .modal{border-radius:18px 18px 0 0!important;max-height:92vh}
+}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:12px}
+input,select,textarea{font-family:'Sarabun',sans-serif;font-size:13px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);color:var(--text);outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:#9eb8ae}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+textarea{resize:vertical;min-height:56px}
+.btn{font-family:'Sarabun',sans-serif;font-size:13px;padding:6px 13px;border-radius:var(--r);cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--surface2)}
+.btn-primary{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-primary:hover{background:#0a4a35}
+.btn-danger{color:var(--red);border-color:#f0c4be}
+.btn-danger:hover{background:var(--rl)}
+.btn-orange{background:var(--orange);color:#fff;border-color:var(--orange)}
+.btn-orange:hover{background:#b34608}
+.btn-sm{padding:3px 9px;font-size:12px}
+.slabel{font-size:11px;font-weight:600;letter-spacing:.7px;color:var(--text3);text-transform:uppercase;margin-bottom:7px}
+/* cart */
+.cart-hdr{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600}
+.cart-items{flex:1;overflow-y:auto;padding:5px 9px}
+.cart-item{display:flex;align-items:center;gap:5px;padding:5px 2px;border-bottom:1px solid var(--border)}
+.cart-item:last-child{border:none}
+.ci-name{flex:1;font-size:12px;line-height:1.4}
+.qty-btn{width:20px;height:20px;border:1px solid var(--border);border-radius:5px;font-size:13px;cursor:pointer;background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center}
+.qty-btn:hover{background:var(--border)}
+.ci-price{font-size:12px;font-weight:500;min-width:48px;text-align:right}
+.cart-footer{padding:8px 12px;border-top:1px solid var(--border)}
+.trow{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:3px}
+.trow.big{font-size:14px;font-weight:600;color:var(--text);margin-top:5px;margin-bottom:0}
+.pay-btn{width:100%;padding:10px;background:var(--green);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;margin-top:8px;font-family:'Sarabun',sans-serif}
+.pay-btn:hover{background:#0a4a35}
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:6px 9px;font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border)}
+td{padding:7px 9px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:last-child td{border:none}
+tr:hover td{background:var(--surface2)}
+.badge{display:inline-block;padding:2px 7px;border-radius:99px;font-size:11px;font-weight:500}
+.badge-green{background:var(--gl);color:var(--green)}
+.badge-warn{background:var(--yl);color:#92600a}
+.badge-blue{background:var(--bl);color:var(--blue)}
+.badge-purple{background:var(--pl);color:var(--purple)}
+.badge-red{background:var(--rl);color:var(--red)}
+.badge-orange{background:var(--ol);color:var(--orange)}
+/* summary cards */
+.scards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.scard .sc-l{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-bottom:3px}
+.scard .sc-v{font-size:18px;font-weight:600}
+.row{display:flex;gap:7px;align-items:center;margin-bottom:9px}
+/* repair */
+.repair-form{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rlg);padding:14px;margin-bottom:14px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.form-full{grid-column:1/-1}
+.form-label{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:3px;display:block}
+.repair-status-bar{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap}
+.status-btn{padding:4px 11px;font-size:11px;border-radius:99px;border:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text2)}
+.status-btn.s-all{background:var(--text);color:#fff;border-color:var(--text)}
+.status-btn.s-wait{background:var(--yl);color:#92600a;border-color:#f0d88a}
+.status-btn.s-prog{background:var(--bl);color:var(--blue);border-color:#a8c8f0}
+.status-btn.s-done{background:var(--gl);color:var(--green);border-color:#9ed4b8}
+.status-btn.s-dlv{background:var(--pl);color:var(--purple);border-color:#c4a8e8}
+.status-btn.s-cancel{background:var(--rl);color:var(--red);border-color:#f0b8b0}
+.repair-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:12px;margin-bottom:9px}
+.repair-card:hover{border-color:#9eb8ae}
+/* overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:var(--surface);border-radius:var(--rlg);padding:18px;width:340px;box-shadow:0 8px 32px rgba(0,0,0,.15);max-height:90vh;overflow-y:auto}
+.modal h3{font-size:14px;font-weight:600;margin-bottom:11px}
+.modal-btns{display:flex;gap:6px;margin-top:12px}
+.rbox{background:var(--surface);border-radius:var(--rlg);padding:18px;width:265px;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+.rbox h3{font-size:13px;font-weight:600;text-align:center;margin-bottom:3px}
+.rsub{text-align:center;color:var(--text2);font-size:11px;margin-bottom:10px;line-height:1.6}
+.rrow{display:flex;justify-content:space-between;padding:2px 0;font-size:12px}
+.rdiv{border:none;border-top:1px dashed var(--border);margin:6px 0}
+.sw{position:relative;flex:1}
+.sw input{width:100%;padding-left:28px}
+.si{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px}
+/* sync */
+#sync-bar{position:fixed;bottom:10px;right:14px;padding:5px 12px;border-radius:99px;font-size:12px;font-weight:500;z-index:200;transition:all .3s;opacity:0;pointer-events:none}
+#sync-bar.show{opacity:1}
+#sync-bar.saving{background:var(--yl);color:#92600a;border:1px solid #f0d88a}
+#sync-bar.ok{background:var(--gl);color:var(--green);border:1px solid #9ed4b8}
+#sync-bar.err{background:var(--rl);color:var(--red);border:1px solid #f0c4be}
+#loading{position:fixed;inset:0;background:rgba(255,255,255,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;gap:10px;font-size:13px;color:var(--text2)}
+.spin{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* product cards in POS */
+.veh-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.veh-card{border:1px solid var(--border);border-radius:var(--r);padding:7px 8px;background:var(--surface);cursor:pointer;transition:all .12s;user-select:none}
+.veh-card:hover{border-color:var(--gm);background:var(--gl);transform:translateY(-1px)}
+.veh-card:active{transform:none}
+.veh-brand{font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.veh-model{font-size:14px;font-weight:600;margin:1px 0 2px}
+.veh-type{font-size:9px;color:var(--blue);background:var(--bl);border-radius:99px;padding:1px 5px;display:inline-block;margin-bottom:2px}
+.veh-price{font-size:12px;color:var(--gm);font-weight:600}
+.veh-stock{font-size:10px;color:var(--text3);margin-top:2px}
+/* stock adjust */
+.adj-btn{width:26px;height:26px;border:1px solid var(--border);border-radius:6px;font-size:16px;cursor:pointer;background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center;font-weight:500}
+.adj-btn:hover{background:var(--border)}
+/* color picker in POS */
+.color-dot{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .12s;flex-shrink:0}
+.color-dot.selected{border-color:var(--text)!important;box-shadow:0 0 0 2px #fff inset}
+/* product list (stock view) */
+.prod-list-row{display:grid;grid-template-columns:40px 1fr auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.prod-list-row:last-child{border:none}
+/* Login */
+#login-screen{position:fixed;inset:0;background:var(--green);display:flex;align-items:center;justify-content:center;z-index:999}
+.login-box{background:#fff;border-radius:20px;padding:32px 28px;width:300px;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.3)}
+.login-logo{font-size:42px;margin-bottom:8px}
+.login-title{font-size:18px;font-weight:600;color:var(--green);margin-bottom:4px}
+.login-sub{font-size:12px;color:var(--text2);margin-bottom:22px}
+.login-inp{width:100%;font-size:20px;padding:12px;text-align:center;letter-spacing:8px;border:2px solid var(--border);border-radius:12px;margin-bottom:8px;font-family:monospace;outline:none}
+.login-inp:focus{border-color:var(--green)}
+.login-btn{width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Sarabun',sans-serif}
+.login-btn:hover{background:#0a4a35}
+.login-err{font-size:12px;color:var(--red);display:none;margin-bottom:8px;font-weight:500}
+</style>
+</head>
+<body>
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🏪</div>
+    <div class="login-title">POS จักรยานไฟฟ้า</div>
+    <div class="login-sub">กรุณาใส่รหัสผ่านเพื่อเข้าใช้งาน</div>
+    <input class="login-inp" id="login-pin" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="• • • •" maxlength="10"
+      oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+      onkeydown="if(event.key==='Enter')checkLogin()">
+    <div class="login-err" id="login-err">รหัสผ่านไม่ถูกต้อง</div>
+    <button class="login-btn" onclick="checkLogin()">เข้าสู่ระบบ</button>
+  </div>
+</div>
+<div id="loading" style="display:none"><div class="spin"></div><span id="lmsg">กำลังโหลดข้อมูล...</span></div>
+<div id="sync-bar"></div>
+
+<div class="shell">
+  <div class="topbar">
+    <span class="logo">🏪 POS จักรยานไฟฟ้า</span>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('pos')">💰 ขายสินค้า</button>
+      <button class="tab" onclick="switchTab('repair')">🔧 งานซ่อม</button>
+      <button class="tab" onclick="switchTab('products')">📦 สต็อกสินค้า</button>
+      <button class="tab" onclick="switchTab('history')">📋 ประวัติการขาย</button>
+      <button class="tab" onclick="switchTab('customers')">👥 ลูกค้า</button>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <span id="sync-dot" style="font-size:11px;opacity:.8">⏳</span>
+      <span class="topbar-clock" style="font-size:11px;opacity:.7;white-space:nowrap" id="clock"></span>
+    </div>
+  </div>
+
+  <div class="main" id="main-panel">
+
+    <!-- POS -->
+    <div id="tab-pos">
+      <!-- tab รถ/แบต -->
+      <div style="display:flex;gap:0;margin-bottom:10px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+        <button id="pos-cat-bike" onclick="setPosCat('bike')"
+          style="flex:1;padding:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--green);color:#fff;font-family:'Sarabun',sans-serif">🛵 รถ</button>
+        <button id="pos-cat-battery" onclick="setPosCat('battery')"
+          style="flex:1;padding:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--surface);color:var(--text2);font-family:'Sarabun',sans-serif">🔋 แบตเตอรี่</button>
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center">
+        <select id="filter-type" onchange="renderPosGrid()" style="font-size:12px;padding:5px 9px;border-radius:8px">
+          <option value="">ทุกประเภท</option>
+          <option>สกูตเตอร์</option><option>2ล้อ</option><option>3ล้อ</option><option>4ล้อ</option>
+        </select>
+        <select id="filter-brand" onchange="renderPosGrid()" style="font-size:12px;padding:5px 9px;border-radius:8px">
+          <option value="">ทุกแบรนด์</option>
+        </select>
+        <div class="sw" style="flex:1;min-width:120px"><span class="si">🔍</span>
+          <input id="filter-search" placeholder="ค้นหารุ่น..." oninput="renderPosGrid()" style="width:100%;padding-left:28px;font-size:12px">
+        </div>
+      </div>
+      <div class="slabel">สินค้า — คลิกเพื่อเพิ่มในตะกร้า</div>
+      <div class="veh-grid" id="pos-grid"></div>
+    </div>
+
+    <!-- Repair -->
+    <div id="tab-repair" style="display:none">
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn btn-orange" style="font-size:14px;font-weight:600;padding:8px 18px" onclick="showAddRepairModal()">🔧 + เพิ่มงานซ่อม</button>
+      </div>
+      <div class="repair-status-bar">
+        <button class="status-btn s-all" id="sf-all" onclick="setRF('all')">ทั้งหมด (<span id="sfc-all">0</span>)</button>
+        <button class="status-btn" id="sf-รอเช็คอาการ" onclick="setRF('รอเช็คอาการ')">🔍 รอเช็คอาการ (<span id="sfc-รอเช็คอาการ">0</span>)</button>
+        <button class="status-btn" id="sf-กำลังซ่อม" onclick="setRF('กำลังซ่อม')">🔧 กำลังซ่อม (<span id="sfc-กำลังซ่อม">0</span>)</button>
+        <button class="status-btn" id="sf-ซ่อมเสร็จ" onclick="setRF('ซ่อมเสร็จ')">✅ ซ่อมเสร็จ (<span id="sfc-ซ่อมเสร็จ">0</span>)</button>
+        <button class="status-btn" id="sf-ส่งคืนแล้ว" onclick="setRF('ส่งคืนแล้ว')">📦 ส่งคืนแล้ว (<span id="sfc-ส่งคืนแล้ว">0</span>)</button>
+        <button class="status-btn" id="sf-ยกเลิก" onclick="setRF('ยกเลิก')">❌ ยกเลิก (<span id="sfc-ยกเลิก">0</span>)</button>
+      </div>
+      <div class="row"><div class="sw"><span class="si">🔍</span><input id="repair-search" placeholder="ค้นหา..." oninput="renderRepairs()"></div></div>
+      <div id="repairs-list"></div>
+    </div>
+
+    <!-- Products / Stock -->
+    <div id="tab-products" style="display:none">
+      <div class="row">
+        <button class="btn btn-primary" onclick="showAddProductModal()">+ เพิ่มสินค้าใหม่</button>
+        <button class="btn" onclick="showAddBrandModal()">🏷 จัดการแบรนด์</button>
+        <div class="sw" style="flex:1"><span class="si">🔍</span><input id="prod-search" placeholder="ค้นหาสินค้า..." oninput="renderStockList()"></div>
+        <select id="prod-filter-type" onchange="renderStockList()" style="font-size:12px;padding:5px 8px">
+          <option value="">ทุกประเภท</option>
+          <option>สกูตเตอร์</option><option>2ล้อ</option><option>3ล้อ</option><option>4ล้อ</option>
+        </select>
+        <select id="prod-filter-ah" onchange="renderStockList()" style="font-size:12px;padding:5px 8px;display:none">
+          <option value="">ทุก Ah</option>
+          <option>12Ah</option><option>20Ah</option><option>21Ah</option>
+        </select>
+        <select id="stock-filter-brand-bike" onchange="renderStockList()" style="font-size:12px;padding:5px 8px">
+          <option value="">ทุกแบรนด์</option>
+        </select>
+        <select id="stock-filter-brand-bat" onchange="renderStockList()" style="font-size:12px;padding:5px 8px;display:none">
+          <option value="">ทุกแบรนด์</option>
+        </select>
+      </div>
+      <!-- Category tabs -->
+      <div style="display:flex;gap:0;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--surface)">
+        <button id="cat-btn-bike" onclick="setStockCat('bike')"
+          style="flex:1;padding:9px;font-size:13px;font-weight:500;border:none;cursor:pointer;background:var(--green);color:#fff;font-family:'Sarabun',sans-serif;transition:all .15s">
+          🛵 รถ
+        </button>
+        <button id="cat-btn-battery" onclick="setStockCat('battery')"
+          style="flex:1;padding:9px;font-size:13px;font-weight:500;border:none;cursor:pointer;background:var(--surface);color:var(--text2);font-family:'Sarabun',sans-serif;transition:all .15s">
+          🔋 แบตเตอรี่
+        </button>
+        <button id="cat-btn-parts" onclick="setStockCat('parts')"
+          style="flex:1;padding:9px;font-size:13px;font-weight:500;border:none;cursor:pointer;background:var(--surface);color:var(--text2);font-family:'Sarabun',sans-serif;transition:all .15s">
+          🔩 อะไหล่
+        </button>
+      </div>
+      <div class="slabel">สต็อกสินค้า (<span id="prod-count">0</span> รายการ)</div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="stock-list"></div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div id="tab-history" style="display:none">
+      <div class="scards" id="summary-cards"></div>
+      <!-- tab ขาย/ซ่อม -->
+      <div style="display:flex;gap:0;margin-bottom:10px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+        <button id="hist-cat-sale" onclick="setHistCat('sale')"
+          style="flex:1;padding:9px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--green);color:#fff;font-family:'Sarabun',sans-serif">💰 ประวัติการขาย</button>
+        <button id="hist-cat-repair" onclick="setHistCat('repair')"
+          style="flex:1;padding:9px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:var(--surface);color:var(--text2);font-family:'Sarabun',sans-serif">🔧 ประวัติงานซ่อม</button>
+      </div>
+      <div class="row">
+        <div class="sw"><span class="si">🔍</span><input id="hist-search" placeholder="ค้นหา..." oninput="renderHistory()"></div>
+        <button class="btn" onclick="exportCSV()">⬇ CSV</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead><tr>
+            <th style="width:80px">เลขที่</th><th>ลูกค้า</th><th style="width:90px">วันที่</th>
+            <th style="width:90px">ยอด</th><th style="width:75px">สถานะ</th><th style="width:90px"></th>
+          </tr></thead>
+          <tbody id="history-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Customers -->
+    <div id="tab-customers" style="display:none">
+      <div class="row">
+        <div class="sw"><span class="si">🔍</span>
+          <input id="cust-search" placeholder="ค้นหาชื่อ หรือเบอร์โทร..." oninput="renderCustomers()" style="width:100%">
+        </div>
+        <button class="btn" onclick="showAddCustModal()">+ เพิ่มลูกค้า</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">กดที่ชื่อหรือเบอร์โทรเพื่อดูประวัติการซื้อและซ่อม</div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead><tr>
+            <th>ชื่อ</th><th style="width:120px">เบอร์โทร</th><th style="width:80px">ยอดซื้อ</th>
+            <th style="width:70px">ซ่อม</th><th style="width:90px">ล่าสุด</th>
+          </tr></thead>
+          <tbody id="cust-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar Cart -->
+  <div class="sidebar" id="sidebar">
+    <div class="cart-hdr">🛒 รายการสั่งซื้อ</div>
+    <div class="cart-items" id="cart-items"></div>
+    <div class="cart-footer" id="cart-footer"></div>
+  </div>
+</div>
+<div id="ov"></div>
+
+<!-- Mobile bottom navigation -->
+<nav class="mobile-nav" id="mobile-nav">
+  <button onclick="switchTab('pos')" id="mn-pos" class="active">
+    <span class="mn-icon">💰</span>ขายสินค้า
+  </button>
+  <button onclick="switchTab('repair')" id="mn-repair">
+    <span class="mn-icon">🔧</span>งานซ่อม
+  </button>
+  <button onclick="switchTab('products')" id="mn-products">
+    <span class="mn-icon">📦</span>สต็อก
+  </button>
+  <button onclick="switchTab('history')" id="mn-history">
+    <span class="mn-icon">📋</span>ประวัติ
+  </button>
+  <button onclick="switchTab('customers')" id="mn-customers">
+    <span class="mn-icon">👥</span>ลูกค้า
+  </button>
+</nav>
+
+<!-- Cart FAB (mobile only, POS tab) -->
+<button class="cart-fab" id="cart-fab" onclick="openMobileCart()" style="display:none">
+  🛒 <span id="cart-fab-label">ตะกร้า</span>
+</button>
+
+<!-- Mobile Cart Modal -->
+<div id="mobile-cart-bg" class="cart-modal-bg" style="display:none" onclick="closeMobileCart()"></div>
+<div id="mobile-cart-modal" class="cart-modal" style="display:none">
+  <div class="cart-modal-hdr">
+    <span style="font-size:15px;font-weight:600">🛒 รายการสั่งซื้อ</span>
+    <button onclick="closeMobileCart()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)">✕</button>
+  </div>
+  <div class="cart-modal-body" id="mobile-cart-items"></div>
+  <div class="cart-modal-footer" id="mobile-cart-footer"></div>
+</div>
+
+<script>
+const SHEET_URL='https://script.google.com/macros/s/AKfycbzjBAySVrr4tFxAXcAMR9eQwGHzMTliS-Swp9f9HEQMCmJkpTEKcLeI8TfTugcljA/exec';
+const VEH_TYPES=['สกูตเตอร์','2ล้อ','3ล้อ','4ล้อ'];
+const RSTAT=['รอเช็คอาการ','กำลังซ่อม','ซ่อมเสร็จ','ส่งคืนแล้ว','ยกเลิก'];
+const RBADGE={'รอเช็คอาการ':'badge-warn','กำลังซ่อม':'badge-blue','ซ่อมเสร็จ':'badge-green','ส่งคืนแล้ว':'badge-purple','ยกเลิก':'badge-red'};
+const RFC={'รอเช็คอาการ':'s-wait','กำลังซ่อม':'s-prog','ซ่อมเสร็จ':'s-done','ส่งคืนแล้ว':'s-dlv','ยกเลิก':'s-cancel'};
+const HIDDEN=['ซ่อมเสร็จ','ส่งคืนแล้ว','ยกเลิก'];
+
+let products=[],customers=[],sales=[],repairs=[],brands=[],parts=[];
+let nextPartId=1;
+let stockCat='bike'; // 'bike' or 'battery'
+let cart={};
+let nextProdId=1,nextRcId=1,nextRpId=1;
+let repairFilter='all';
+
+// ── API ──
+function fetchTimeout(url,opts={},ms=25000){
+  const controller=new AbortController();
+  const tid=setTimeout(()=>controller.abort(),ms);
+  return fetch(url,{...opts,signal:controller.signal}).finally(()=>clearTimeout(tid));
+}
+async function fetchRetry(url,opts={},retries=2){
+  for(let i=0;i<=retries;i++){
+    try{return await fetchTimeout(url,opts,25000);}
+    catch(e){if(i===retries)throw e;await new Promise(r=>setTimeout(r,2000));}
+  }
+}
+const api={
+  get:async(sh)=>{const r=await fetchRetry(`${SHEET_URL}?action=getAll&sheet=${sh}`);return r.json();},
+  save:async(sh,d)=>{const r=await fetchRetry(`${SHEET_URL}?action=save&sheet=${sh}`,{method:'POST',body:JSON.stringify(d)});return r.json();},
+  upd:async(sh,id,d)=>{const r=await fetchRetry(`${SHEET_URL}?action=update&sheet=${sh}&id=${id}`,{method:'POST',body:JSON.stringify(d)});return r.json();},
+  del:async(sh,id)=>{const r=await fetchRetry(`${SHEET_URL}?action=delete&sheet=${sh}&id=${id}`);return r.json();},
+  init:async()=>{const r=await fetchRetry(`${SHEET_URL}?action=initSheets`);return r.json();}
+};
+
+function showSync(s,m){const b=document.getElementById('sync-bar');b.textContent=m;b.className='show '+s;clearTimeout(b._t);if(s!=='saving')b._t=setTimeout(()=>b.className='',2500);}
+function closeOv(){document.getElementById('ov').innerHTML='';}
+
+// ── Click outside modal to close (event delegation) ──
+document.addEventListener('click',function(e){
+  const ov=document.getElementById('ov');
+  if(ov && e.target.classList.contains('overlay') && !e.target.dataset.noClose) closeOv();
+});
+function eh(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function today(){return new Date().toISOString().slice(0,10);}
+
+// ── PIN guard ──
+function requirePin(label,callback){
+  const existing=document.getElementById("pin-popup");if(existing)existing.remove();
+  const pop=document.createElement("div");
+  pop.id="pin-popup";
+  pop.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:500";
+  pop.innerHTML=`<div style="background:var(--surface);border-radius:14px;padding:20px;width:280px;box-shadow:0 8px 32px rgba(0,0,0,.2)"><div style="font-size:14px;font-weight:600;margin-bottom:4px">🔒 ยืนยันตัวตน</div><div style="font-size:12px;color:var(--text2);margin-bottom:12px">${label}</div><input id="pin-inp" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="รหัสผ่าน" oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="width:100%;margin-bottom:8px"><div id="pin-err" style="font-size:11px;color:var(--red);display:none;margin-bottom:8px">รหัสไม่ถูกต้อง</div><div style="display:flex;gap:7px"><button class="btn" style="flex:1" onclick="document.getElementById('pin-popup').remove()">ยกเลิก</button><button class="btn btn-primary" style="flex:1" id="pin-ok-btn">ยืนยัน</button></div></div>`;
+  document.body.appendChild(pop);
+  const inp=document.getElementById("pin-inp");
+  const ok=()=>{if(inp.value==="475"){pop.remove();callback();}else{document.getElementById("pin-err").style.display="block";inp.value="";inp.focus();}};
+  document.getElementById("pin-ok-btn").onclick=ok;
+  inp.onkeydown=e=>{if(e.key==="Enter")ok();};
+  inp.focus();
+}
+
+const NAMED_COLORS=[
+  {hex:'#e53935',name:'แดง'},{hex:'#212121',name:'ดำ'},{hex:'#78909c',name:'เทา'},
+  {hex:'#1e88e5',name:'น้ำเงิน'},{hex:'#f5f0e0',name:'ครีม'},{hex:'#43a047',name:'เขียว'},
+  {hex:'#29b6f6',name:'ฟ้า'},{hex:'#ffffff',name:'ขาว'},{hex:'#8e24aa',name:'ม่วง'},
+  {hex:'#fdd835',name:'เหลือง'}
+];
+function colorName(hex){const c=NAMED_COLORS.find(x=>x.hex===hex);if(c)return c.name;if(typeof guessColorName==='function'&&/^#[0-9a-fA-F]{6}$/.test(hex))return guessColorName(hex);return hex;}
+
+// ── Load ──
+// ── Cache helpers ──
+const CACHE_KEY='pos_cache_v8';
+function saveCache(){
+  try{
+    localStorage.setItem(CACHE_KEY,JSON.stringify({products,customers,sales,repairs,brands,parts,ts:Date.now()}));
+  }catch(e){}
+}
+function loadCache(){
+  try{
+    const raw=localStorage.getItem(CACHE_KEY);
+    if(!raw)return false;
+    const d=JSON.parse(raw);
+    products=d.products||[];customers=d.customers||[];sales=d.sales||[];
+    repairs=d.repairs||[];brands=d.brands||[];parts=d.parts||[];
+    return true;
+  }catch(e){return false;}
+}
+
+function parseLoaded(){
+  const KNOWN_BAT_BRANDS=['chilwee','dynavolt','yuasa','gs','amaron','varta','exide','fiamm','banner'];
+  // fix brands type ก่อน
+  brands.forEach(b=>{
+    const t=String(b.type||'').trim().toLowerCase();
+    if(t==='battery'){
+      b.type='battery';
+    } else if(!t||t==='0'||t==='bike'||t==='undefined'){
+      const nm=(b.name||'').toLowerCase();
+      b.type=KNOWN_BAT_BRANDS.some(x=>nm.includes(x))?'battery':'bike';
+    } else {
+      b.type='bike';
+    }
+  });
+  products.forEach(p=>{
+    if(typeof p.colors==='string'){try{p.colors=JSON.parse(p.colors);}catch{p.colors=[];}}
+    if(!Array.isArray(p.colors))p.colors=[];
+    p.colors.forEach(c=>{
+      if(!c.name)c.name=colorName(c.color);
+      if(c.stockA===undefined&&c.stockB===undefined&&c.stock!==undefined){c.stockA=parseInt(c.stock)||0;c.stockB=0;}
+      c.stockA=parseInt(c.stockA)||0;
+      c.stockB=parseInt(c.stockB)||0;
+    });
+    // parse stockA/stockB ของแบตเตอรี่ให้เป็นตัวเลขเสมอ
+    p.stockA=parseInt(p.stockA)||0;
+    p.stockB=parseInt(p.stockB)||0;
+    // fix category: type==='battery' หรือ category==='battery' = แบต
+    const cat=String(p.category||'').trim().toLowerCase();
+    const ptype=String(p.type||'').trim().toLowerCase();
+    if(cat==='battery'||ptype==='battery'){
+      p.category='battery';
+    } else if(!cat||cat==='undefined'){
+      // ดูจากแบรนด์ของ product
+      const pb=(p.brand||'').toLowerCase();
+      const matchBrand=brands.find(b=>b.name.toLowerCase()===pb);
+      if(matchBrand&&matchBrand.type==='battery'){
+        p.category='battery';
+      } else if(KNOWN_BAT_BRANDS.some(x=>pb.includes(x))){
+        p.category='battery';
+      } else {
+        p.category='bike';
+      }
+    } else {
+      p.category='bike';
+    }
+    // fallback: ถ้าแบตไม่มี ah/volt ให้ดึงจาก model เช่น "12V12Ah"
+    if(p.category==='battery'){
+      if(!p.volt||p.volt==='0'){
+        const vm=String(p.model||'').match(/(\d+)\s*V/i);
+        p.volt=vm?vm[1]+'V':'12V';
+      }
+      if(!p.ah||p.ah==='0'||p.ah==='-'){
+        const am=String(p.model||'').match(/(\d+)\s*Ah/i);
+        p.ah=am?am[1]+'Ah':'';
+      }
+      // normalize ให้ลงท้าย V / Ah
+      p.volt=String(p.volt).replace(/v$/i,'V');
+      if(p.ah&&!/ah$/i.test(p.ah)) p.ah=p.ah+'Ah';
+      p.ah=String(p.ah).replace(/ah$/i,'Ah');
+    }
+  });
+  sales.forEach(s=>{
+    if(typeof s.items==='string'){try{s.items=JSON.parse(s.items);}catch{s.items=[];}}
+    s.deposit=parseFloat(s.deposit)||0;
+    s.remaining=parseFloat(s.remaining)||0;
+    s.total=parseFloat(s.total)||0;
+    s.agreedPrice=parseFloat(s.agreedPrice)||s.total;
+    // ถ้า remaining=0 แต่ deposit>0 และ deposit<total แปลว่า remaining ไม่ได้ถูกบันทึก
+    if(s.status==='มัดจำ'&&s.remaining===0&&s.deposit>0&&s.agreedPrice>s.deposit){
+      s.remaining=s.agreedPrice-s.deposit;
+    }
+    // ถ้า total=0 แต่ agreedPrice มีค่า
+    if(s.total===0&&s.agreedPrice>0) s.total=s.agreedPrice;
+  });
+  nextProdId=products.length?Math.max(...products.map(x=>parseInt(x.id)||0))+1:1;
+  nextRcId=sales.length?Math.max(...sales.map(x=>parseInt((x.id||'').replace('RC',''))||0))+1:1;
+  nextRpId=repairs.length?Math.max(...repairs.map(x=>parseInt((x.id||'').replace('RP',''))||0))+1:1;
+  parts.forEach(pt=>{pt.price=parseFloat(pt.price)||0;pt.stock=parseInt(pt.stock)||0;pt.stockA=parseInt(pt.stockA)||0;pt.stockB=parseInt(pt.stockB)||0;});
+  nextPartId=parts.length?Math.max(...parts.map(x=>parseInt(x.id)||0))+1:1;
+}
+
+function renderAll(){
+  renderPosGrid();renderCart();updateCustList();updateBrandFilters();
+  // สลับ tab เฉพาะตอนเปิดแอปครั้งแรกเท่านั้น
+  if(!window._tabInitialized){
+    window._tabInitialized=true;
+    const lastTab=localStorage.getItem('pos_last_tab')||'pos';
+    switchTab(lastTab);
+  } else {
+    // refresh ข้อมูลของ tab ที่กำลังเปิดอยู่โดยไม่เปลี่ยน tab
+    const cur=document.querySelector('.tab.active');
+    if(cur){
+      const t=cur.getAttribute('onclick').replace("switchTab('","").replace("')","");
+      if(t==='history') renderHistory();
+      else if(t==='customers') renderCustomers();
+      else if(t==='products'){renderStockList();}
+      else if(t==='repair'){renderRepairs();updateRepairCustList();}
+      else renderPosGrid();
+    }
+  }
+}
+
+async function loadAll(){
+  // ── Phase 1: แสดง cache ก่อนทันที ──
+  const hasCached=loadCache();
+  if(hasCached){
+    parseLoaded();
+    document.getElementById('loading').style.display='none';
+    document.getElementById('sync-dot').textContent='⏳ กำลังซิงค์...';
+    renderAll();
+  }
+
+  // ── Phase 2: sync กับ Google Sheets ทีหลัง ──
+  try{
+    if(!hasCached){
+      document.getElementById('lmsg').textContent='กำลังโหลดข้อมูล... (ครั้งแรกอาจช้า 10-30 วิ)';
+      document.getElementById('loading').style.display='flex';
+    } else {
+      document.getElementById('sync-dot').textContent='⏳ กำลังซิงค์...';
+    }
+    // โหลดข้อมูลหลักก่อน (ไม่รวม sales ที่หนักที่สุด)
+    // initSheets เงียบๆ เพื่ออัป header ให้ครบ (ไม่รอ)
+    api.init().catch(()=>{});
+    const [p,c,r,b,s,pt]=await Promise.all([
+      api.get('products'),api.get('customers'),api.get('repairs'),api.get('brands'),api.get('sales'),api.get('parts')
+    ]);
+    products=p||[];customers=c||[];repairs=r||[];brands=b||[];
+    sales=s||[];parts=pt||[];
+    parseLoaded();
+    saveCache();
+    document.getElementById('sync-dot').textContent='🟢 เชื่อมต่อแล้ว';
+    document.getElementById('loading').style.display='none';
+    renderAll();
+  }catch(e){
+    if(!hasCached){
+      document.getElementById('lmsg').textContent='⚠️ เชื่อมต่อไม่ได้: '+e.message;
+      document.getElementById('sync-dot').textContent='🔴 ออฟไลน์';
+      setTimeout(()=>document.getElementById('loading').style.display='none',2500);
+    } else {
+      // มี cache อยู่แล้ว แค่แจ้งว่า offline แต่ยังใช้งานได้
+      document.getElementById('sync-dot').textContent='🟡 ออฟไลน์ (ข้อมูลเก่า)';
+      // ลอง retry ใน 30 วิ
+      setTimeout(()=>loadAll(),30000);
+    }
+  }
+}
+
+// ── Tab ──
+function switchTab(t){
+  localStorage.setItem('pos_last_tab',t);
+  ['pos','repair','products','history','customers'].forEach((x,i)=>{
+    document.getElementById('tab-'+x).style.display=x===t?'block':'none';
+    document.querySelectorAll('.tab')[i].classList.toggle('active',x===t);
+    const mn=document.getElementById('mn-'+x);
+    if(mn)mn.classList.toggle('active',x===t);
+  });
+  // repair is default first tab on mobile
+  
+  const sp=t==='pos';
+  const isMobile=window.innerWidth<=1024;
+  if(!isMobile){
+    document.getElementById('sidebar').style.display=sp?'flex':'none';
+    document.querySelector('.shell').style.gridTemplateColumns=sp?'1fr 320px':'1fr';
+  }
+  // repair is default: update shell on load
+  const fab=document.getElementById('cart-fab');
+  if(fab) fab.style.display=(sp&&isMobile)?'flex':'none';
+  if(t==='history')renderHistory();
+  if(t==='customers')renderCustomers();
+  if(t==='products'){renderStockList();}
+  if(t==='repair'){renderRepairs();updateRepairCustList();}
+  closeMobileCart();
+}
+
+// ── Mobile Cart ──
+function openMobileCart(){
+  document.getElementById('mobile-cart-bg').style.display='block';
+  document.getElementById('mobile-cart-modal').style.display='flex';
+  renderMobileCart();
+}
+function closeMobileCart(){
+  const bg=document.getElementById('mobile-cart-bg');
+  const mc=document.getElementById('mobile-cart-modal');
+  if(bg)bg.style.display='none';
+  if(mc)mc.style.display='none';
+}
+function renderMobileCart(){
+  const items=Object.entries(cart);
+  const el=document.getElementById('mobile-cart-items');
+  if(!items.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:20px;text-align:center">ยังไม่มีสินค้า</div>';
+    document.getElementById('mobile-cart-footer').innerHTML='';
+    updateCartFab();return;
+  }
+  el.innerHTML=items.map(([key,v])=>`
+    <div class="cart-item" style="padding:8px 2px">
+      <div class="ci-name">
+        <div style="font-weight:500;font-size:13px">${v.name}</div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:2px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${v.color};border:1px solid var(--border)"></div>
+          <span style="font-size:11px;color:var(--text2)">${v.colorName||v.color}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <button class="qty-btn" onclick="chQty('${key}',-1);renderMobileCart()">−</button>
+        <span style="font-size:13px;min-width:16px;text-align:center">${v.qty}</span>
+        <button class="qty-btn" onclick="chQty('${key}',1);renderMobileCart()">+</button>
+      </div>
+      <div class="ci-price" style="font-size:13px">฿${(v.price*v.qty).toLocaleString()}</div>
+      <button class="qty-btn" onclick="removeCartItem('${key}');renderMobileCart()" style="color:var(--red)">✕</button>
+    </div>`).join('');
+  const total=items.reduce((s,[,v])=>s+v.price*v.qty,0);
+  document.getElementById('mobile-cart-footer').innerHTML=`
+    <div class="trow big" style="font-size:15px"><span>ยอดชำระ</span><span>฿${total.toLocaleString()}</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px">
+      <button class="pay-btn" style="margin-top:0;font-size:14px;background:var(--green)" onclick="closeMobileCart();checkout('sale')">💳 ชำระ</button>
+      <button class="pay-btn" style="margin-top:0;font-size:14px;background:var(--yellow);color:#92600a" onclick="closeMobileCart();checkout('deposit')">💰 มัดจำ</button>
+    </div>`;
+  updateCartFab();
+}
+function updateCartFab(){
+  const items=Object.entries(cart);
+  const fab=document.getElementById('cart-fab');
+  const lbl=document.getElementById('cart-fab-label');
+  if(!fab)return;
+  if(!items.length){lbl.textContent='ตะกร้า';}
+  else{const total=items.reduce((s,[,v])=>s+v.price*v.qty,0);lbl.textContent=`${items.length} รายการ · ฿${total.toLocaleString()}`;}
+}
+
+// ── Brands ──
+function updateBrandFilters(){
+  const bikeOpts=brands.filter(b=>b.type!=='battery').map(b=>`<option value="${eh(b.name)}">${b.name}</option>`).join('');
+  const batOpts=brands.filter(b=>b.type==='battery').map(b=>`<option value="${eh(b.name)}">${b.name}</option>`).join('');
+  const fb=document.getElementById('filter-brand');
+  if(fb) fb.innerHTML='<option value="">ทุกแบรนด์</option>'+bikeOpts;
+  const sbk=document.getElementById('stock-filter-brand-bike');
+  if(sbk) sbk.innerHTML='<option value="">ทุกแบรนด์</option>'+bikeOpts;
+  const sbb=document.getElementById('stock-filter-brand-bat');
+  if(sbb) sbb.innerHTML='<option value="">ทุกแบรนด์</option>'+batOpts;
+}
+
+function showAddBrandModal(){
+  document.getElementById('ov').innerHTML=`<div class="overlay"><div class="modal" style="width:380px">
+    <h3>🏷 จัดการแบรนด์</h3>
+    <!-- Tab selector -->
+    <div style="display:flex;gap:0;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+      <button id="bm-tab-bike" onclick="setBrandTab('bike')"
+        style="flex:1;padding:7px;font-size:13px;font-weight:500;border:none;cursor:pointer;background:var(--green);color:#fff;font-family:'Sarabun',sans-serif">🛵 รถ</button>
+      <button id="bm-tab-battery" onclick="setBrandTab('battery')"
+        style="flex:1;padding:7px;font-size:13px;font-weight:500;border:none;cursor:pointer;background:var(--surface);color:var(--text2);font-family:'Sarabun',sans-serif">🔋 แบตเตอรี่</button>
+    </div>
+    <input type="hidden" id="nb-type" value="bike">
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <input id="nb-name" placeholder="ชื่อแบรนด์ใหม่" style="flex:1">
+      <button class="btn btn-primary" onclick="addBrand()">+ เพิ่ม</button>
+    </div>
+    <div id="brand-list-modal" style="max-height:220px;overflow-y:auto"></div>
+    <div class="modal-btns"><button class="btn btn-primary" style="flex:1" onclick="closeOv()">ปิด</button></div>
+  </div></div>`;
+  setBrandTab('bike');
+}
+
+function setBrandTab(t){
+  document.getElementById('nb-type').value=t;
+  document.getElementById('bm-tab-bike').style.background=t==='bike'?'var(--green)':'var(--surface)';
+  document.getElementById('bm-tab-bike').style.color=t==='bike'?'#fff':'var(--text2)';
+  document.getElementById('bm-tab-battery').style.background=t==='battery'?'var(--green)':'var(--surface)';
+  document.getElementById('bm-tab-battery').style.color=t==='battery'?'#fff':'var(--text2)';
+  renderBrandListModal();
+}
+
+function renderBrandListModal(){
+  const el=document.getElementById('brand-list-modal');
+  if(!el)return;
+  const tEl=document.getElementById('nb-type');
+  const t=tEl?tEl.value:'bike';
+  const list=brands.filter(b=>(t==='battery'?b.type==='battery':b.type!=='battery'));
+  el.innerHTML=list.length?list.map(b=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px">${b.name}</span>
+      <button class="btn btn-danger btn-sm" onclick="requirePin('ลบแบรนด์',()=>deleteBrand(${b.id}))">ลบ</button>
+    </div>`).join(''):'<div style="color:var(--text3);font-size:12px;padding:8px 0">ยังไม่มีแบรนด์ประเภทนี้</div>';
+}
+
+async function addBrand(){
+  const name=document.getElementById('nb-name').value.trim();
+  if(!name)return;
+  const tEl=document.getElementById('nb-type');
+  const btype=tEl?tEl.value:'bike';
+  if(brands.find(b=>b.name===name&&(btype==='battery'?b.type==='battery':b.type!=='battery'))){alert('มีแบรนด์นี้แล้ว');return;}
+  const b={id:Date.now(),name,type:btype};
+  brands.push(b);
+  showSync('saving','💾 บันทึก...');
+  try{await api.save('brands',b);showSync('ok','✅ เพิ่มแบรนด์แล้ว');}catch{showSync('err','❌ ไม่สำเร็จ');}
+  document.getElementById('nb-name').value='';
+  updateBrandFilters();renderBrandListModal();
+}
+
+async function deleteBrand(id){
+  if(!confirm('ลบแบรนด์นี้?'))return;
+  brands=brands.filter(x=>x.id!=id);
+  showSync('saving','💾 ลบ...');
+  try{await api.del('brands',id);showSync('ok','✅ ลบแล้ว');}catch{showSync('err','❌ ไม่สำเร็จ');}
+  updateBrandFilters();renderBrandListModal();
+}
+
+// ── Add Product Modal ──
+const BAT_VOLTS=['12V'];
+const BAT_AH=['12Ah','20Ah','21Ah'];
+
+function showAddProductModal(){
+  const bikeBrandOpts=brands.filter(b=>b.type!=='battery').map(b=>`<option value="${eh(b.name)}">${b.name}</option>`).join('');
+  const batBrandOpts=brands.filter(b=>b.type==='battery').map(b=>`<option value="${eh(b.name)}">${b.name}</option>`).join('');
+  const brandOpts=bikeBrandOpts; // default bike
+  document.getElementById('ov').innerHTML=`<div class="overlay"><div class="modal" style="width:420px">
+    <h3>+ เพิ่มสินค้าใหม่</h3>
+    <div style="display:flex;gap:0;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+      <button id="np-cat-bike" onclick="selectProductCat('bike')"
+        style="flex:1;padding:8px;font-size:13px;font-weight:500;border:none;cursor:pointer;background:var(--green);color:#fff;font-family:'Sarabun',sans-serif">🛵 รถ</button>
+      <button id="np-cat-battery" onclick="selectProductCat('battery')"
+        style="flex:1;padding:8px;font-size:13px;font-weight:500;border:none;cursor:pointer;background:var(--surface);color:var(--text2);font-family:'Sarabun',sans-serif">🔋 แบตเตอรี่</button>
+    </div>
+    <input type="hidden" id="np-category" value="bike">
+    <div class="form-grid" style="gap:8px">
+      <div>
+        <label class="form-label">แบรนด์</label>
+        <select id="np-brand" style="width:100%"><option value="">-- เลือกแบรนด์ --</option>${bikeBrandOpts}</select>
+      </div>
+      <div><label class="form-label">ชื่อรุ่น</label><input id="np-model" placeholder="เช่น G5, EC05" style="width:100%"></div>
+      <div id="np-type-row">
+        <label class="form-label">ประเภทรถ</label>
+        <select id="np-type" style="width:100%"><option value="">-- เลือก --</option>${VEH_TYPES.map(t=>`<option>${t}</option>`).join('')}</select>
+      </div>
+      <div><label class="form-label">ราคาขาย (฿) *</label><input id="np-price" type="number" min="0" placeholder="0" style="width:100%"></div>
+    </div>
+
+    <!-- Battery fields (hidden by default) -->
+    <div id="np-battery-fields" style="display:none;margin-top:10px">
+      <div class="form-grid" style="gap:8px">
+        <div>
+          <label class="form-label">โวลต์ (Volt) *</label>
+          <select id="np-volt" style="width:100%">
+            ${BAT_VOLTS.map(v=>`<option value="${v}">${v}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">แอมป์ (Ah) *</label>
+          <select id="np-ah" style="width:100%">
+            <option value="">-- เลือก Ah --</option>
+            ${BAT_AH.map(a=>`<option value="${a}">${a}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <!-- Battery stock (no color, just 2 branches) -->
+      <div style="margin-top:10px">
+        <label class="form-label">สต็อก</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;text-align:center">
+            <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:5px">📍 สาขาวัดเขา</div>
+            <input id="np-bat-stockA" type="number" min="0" value="0" style="width:100%;text-align:center;font-size:15px;font-weight:600;padding:5px;border-radius:7px;border:1px solid var(--border)">
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;text-align:center">
+            <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:5px">📍 สาขาสนามกีฬา</div>
+            <input id="np-bat-stockB" type="number" min="0" value="0" style="width:100%;text-align:center;font-size:15px;font-weight:600;padding:5px;border-radius:7px;border:1px solid var(--border)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bike color/stock (shown by default) -->
+    <div id="np-color-section" style="margin-top:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+        <label class="form-label" style="margin:0">สีและสต็อก</label>
+        <button class="btn btn-sm btn-primary" onclick="showColorPickerForAdd()">+ เพิ่มสี</button>
+      </div>
+      <div id="color-rows" style="display:flex;flex-direction:column;gap:6px;min-height:10px"></div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn" style="flex:1" onclick="closeOv()">ยกเลิก</button>
+      <button class="btn btn-primary" style="flex:1" onclick="requirePin('เพิ่มสินค้าใหม่',saveNewProduct)">💾 บันทึก</button>
+    </div>
+  </div></div>`;
+}
+
+function selectProductCat(cat){
+  document.getElementById('np-category').value=cat;
+  document.getElementById('np-cat-bike').style.background=cat==='bike'?'var(--green)':'var(--surface)';
+  document.getElementById('np-cat-bike').style.color=cat==='bike'?'#fff':'var(--text2)';
+  document.getElementById('np-cat-battery').style.background=cat==='battery'?'var(--green)':'var(--surface)';
+  document.getElementById('np-cat-battery').style.color=cat==='battery'?'#fff':'var(--text2)';
+  const isBat=cat==='battery';
+  // type row
+  const tr=document.getElementById('np-type-row');
+  if(tr) tr.style.display=isBat?'none':'block';
+  // battery fields
+  const bf=document.getElementById('np-battery-fields');
+  if(bf) bf.style.display=isBat?'block':'none';
+  // color section
+  const cs=document.getElementById('np-color-section');
+  if(cs) cs.style.display=isBat?'none':'block';
+  // update brand dropdown to match category
+  const nb=document.getElementById('np-brand');
+  if(nb){
+    const opts=brands.filter(b=>isBat?(b.type==='battery'):(b.type!=='battery'))
+      .map(b=>`<option value="${b.name}">${b.name}</option>`).join('');
+    nb.innerHTML='<option value="">-- เลือกแบรนด์ --</option>'+opts;
+  }
+}
+
+// แปลงสี hex เป็นชื่อภาษาไทยโดยประมาณ
+function guessColorName(hex){
+  // ลอง match กับ NAMED_COLORS ก่อน
+  const exact=NAMED_COLORS.find(x=>x.hex.toLowerCase()===hex.toLowerCase());
+  if(exact) return exact.name;
+  // แปลง hex เป็น RGB แล้วเดาชื่อ
+  const r=parseInt(hex.slice(1,3),16);
+  const g=parseInt(hex.slice(3,5),16);
+  const b=parseInt(hex.slice(5,7),16);
+  const max=Math.max(r,g,b),min=Math.min(r,g,b);
+  const l=(max+min)/2/255;
+  if(l<0.15) return 'ดำ';
+  if(l>0.92) return 'ขาว';
+  if(max===min) return 'เทา';
+  const s=(max-min)/(l<0.5?(max+min):(510-max-min));
+  if(s<0.15) return l<0.4?'เทาเข้ม':l>0.7?'เทาอ่อน':'เทา';
+  let h=0;
+  if(max===r) h=60*(g-b)/(max-min);
+  else if(max===g) h=60*(b-r)/(max-min)+120;
+  else h=60*(r-g)/(max-min)+240;
+  if(h<0) h+=360;
+  const bright=l>0.65?'อ่อน':l<0.35?'เข้ม':'';
+  let base='';
+  if(h<15||h>=345) base='แดง';
+  else if(h<40) base='ส้ม';
+  else if(h<70) base='เหลือง';
+  else if(h<150) base='เขียว';
+  else if(h<195) base='เขียวน้ำเงิน';
+  else if(h<255) base='น้ำเงิน';
+  else if(h<285) base='ม่วง';
+  else if(h<345) base='ชมพู';
+  return base+(bright?bright:'');
+}
+
+function showColorPickerForAdd(){
+  const existing=document.getElementById('color-picker-popup');
+  if(existing){existing.remove();return;}
+  const colorDots=NAMED_COLORS.map(c=>`
+    <div onclick="pickPresetColor('${c.hex}','${c.name}')"
+      style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 4px;border-radius:10px;transition:background .12s"
+      onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      <div style="width:38px;height:38px;border-radius:50%;background:${c.hex};border:2px solid ${c.hex==='#ffffff'||c.hex==='#f5f0e0'?'#bbb':'rgba(0,0,0,.1)'};box-shadow:0 1px 4px rgba(0,0,0,.12)"></div>
+      <span style="font-size:11px;font-weight:500;color:var(--text);white-space:nowrap">${c.name}</span>
+    </div>`).join('');
+  const popup=document.createElement('div');
+  popup.id='color-picker-popup';
+  popup.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;z-index:300;box-shadow:0 12px 40px rgba(0,0,0,.22);width:320px;max-height:90vh;overflow-y:auto';
+  popup.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-size:14px;font-weight:600">🎨 เลือกสี</span>
+      <button onclick="document.getElementById('color-picker-popup').remove()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text2);line-height:1">✕</button>
+    </div>
+    <div style="margin-bottom:12px">
+      <div class="slabel" style="margin-bottom:6px">สีมาตรฐาน</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px">${colorDots}</div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
+    <div class="slabel" style="margin-bottom:8px">เลือกสีเอง</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <input type="color" id="cp-custom-hex" value="#cccccc" style="width:52px;height:44px;border:1px solid var(--border);border-radius:8px;cursor:pointer;padding:2px"
+        oninput="onCpHexChange(this.value)">
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px">ชื่อสี</div>
+        <input type="text" id="cp-custom-name" placeholder="เช่น เขียวมิ้นท์" style="width:100%;font-size:13px">
+      </div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-sm" onclick="appendColorWord(' อ่อน')" style="font-size:11px;flex:1">+ อ่อน</button>
+      <button class="btn btn-sm" onclick="appendColorWord(' เข้ม')" style="font-size:11px;flex:1">+ เข้ม</button>
+      <button class="btn btn-primary btn-sm" onclick="addCustomColor()" style="font-size:12px;flex:2">✓ เพิ่มสีนี้</button>
+    </div>`;
+  document.body.appendChild(popup);
+  // set initial name
+  const hex=document.getElementById('cp-custom-hex').value;
+  document.getElementById('cp-custom-name').value=guessColorName(hex);
+}
+
+function onCpHexChange(hex){
+  const nameEl=document.getElementById('cp-custom-name');
+  if(nameEl) nameEl.value=guessColorName(hex);
+}
+
+function appendColorWord(word){
+  const el=document.getElementById('cp-custom-name');
+  if(!el) return;
+  const v=el.value.replace(/ อ่อน| เข้ม/g,'');
+  el.value=v+word;
+  el.focus();
+}
+
+function pickPresetColor(hex,name){
+  document.getElementById('color-picker-popup').remove();
+  addColorFromPicker(hex,name);
+}
+
+function addCustomColor(){
+  const hex=document.getElementById('cp-custom-hex').value;
+  const name=(document.getElementById('cp-custom-name').value||'').trim()||guessColorName(hex);
+  document.getElementById('color-picker-popup').remove();
+  addColorFromPicker(hex,name);
+}
+
+function addColorFromPicker(hex,name){
+  const existing=document.getElementById('color-picker-popup');
+  if(existing)existing.remove();
+  const cr=document.getElementById('color-rows');if(!cr)return;
+  // check duplicate
+  if([...cr.querySelectorAll('[data-color]')].some(x=>x.dataset.color===hex)){alert(`มีสี${name}แล้ว`);return;}
+  const rowId='cr-'+Date.now();
+  const div=document.createElement('div');
+  div.id=rowId;
+  div.dataset.color=hex;
+  div.dataset.colorname=name;
+  div.style.cssText='display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:8px;padding:8px 10px';
+  div.innerHTML=`    <div style="width:24px;height:24px;border-radius:50%;background:${hex};border:1px solid var(--border);flex-shrink:0"></div>    <span style="font-size:13px;font-weight:500;flex:1">${name}</span>    <div style="display:flex;gap:6px;align-items:center">      <div style="text-align:center">        <div style="font-size:10px;color:var(--text3);margin-bottom:2px">วัดเขา</div>        <input id="${rowId}-stockA" type="number" min="0" value="0" style="width:50px;font-size:13px;padding:4px 6px;text-align:center">      </div>      <div style="text-align:center">        <div style="font-size:10px;color:var(--text3);margin-bottom:2px">สนามกีฬา</div>        <input id="${rowId}-stockB" type="number" min="0" value="0" style="width:50px;font-size:13px;padding:4px 6px;text-align:center">      </div>    </div>    <button class="btn btn-danger btn-sm" onclick="this.parentNode.remove()">✕</button>`;
+  cr.appendChild(div);
+}
+
+async function saveNewProduct(){
+  const brand=document.getElementById('np-brand').value.trim();
+  const model=document.getElementById('np-model').value.trim();
+  const price=parseFloat(document.getElementById('np-price').value);
+  const category=document.getElementById('np-category')?document.getElementById('np-category').value:'bike';
+  const isBat=category==='battery';
+
+  if(isBat){
+    // Battery path — model ไม่บังคับ
+    if(isNaN(price)){alert('กรุณากรอกราคา');return;}
+    const volt=document.getElementById('np-volt').value;
+    const ah=document.getElementById('np-ah').value;
+    if(!ah){alert('กรุณาเลือก Ah');return;}
+    const autoModel=model||(volt+ah); // ถ้าไม่ใส่รุ่น ใช้ volt+ah แทน
+    const stockA=parseInt(document.getElementById('np-bat-stockA').value)||0;
+    const stockB=parseInt(document.getElementById('np-bat-stockB').value)||0;
+    const newP={id:nextProdId++,brand,model:autoModel,type:'battery',price,colors:[],category:'battery',volt,ah,stockA,stockB,sold:0};
+    products.push(newP);
+    showSync('saving','💾 กำลังบันทึก...');
+    try{await api.save('products',{...newP,colors:'[]'});showSync('ok','✅ เพิ่มแบตเตอรี่แล้ว');saveCache();}
+    catch{showSync('err','❌ ไม่สำเร็จ');}
+    closeOv();renderStockList();renderPosGrid();updateBrandFilters();
+  } else {
+    // Bike path
+    const type=document.getElementById('np-type').value;
+    if(!model||!type||isNaN(price)){alert('กรุณากรอกรุ่น, ประเภท และราคา');return;}
+    const colorRows=[...document.querySelectorAll('#color-rows > div')];
+    const colors=[];
+    colorRows.forEach(row=>{
+      const hex=row.dataset.color;
+      const name=row.dataset.colorname||colorName(hex);
+      const stockA=parseInt(document.getElementById(row.id+'-stockA').value)||0;
+      const stockB=parseInt(document.getElementById(row.id+'-stockB').value)||0;
+      if(hex)colors.push({color:hex,name,stockA,stockB,sold:0});
+    });
+    if(!colors.length){alert('กรุณาเพิ่มสีอย่างน้อย 1 สี');return;}
+    const newP={id:nextProdId++,brand,model,type,price,colors,category};
+    products.push(newP);
+    showSync('saving','💾 กำลังบันทึก...');
+    try{await api.save('products',{...newP,colors:JSON.stringify(newP.colors)});showSync('ok','✅ เพิ่มสินค้าแล้ว');}
+    catch{showSync('err','❌ ไม่สำเร็จ');}
+    closeOv();renderPosGrid();renderStockList();updateBrandFilters();
+  }
+}
+
+function setStockCat(cat){
+  stockCat=cat;
+  ['bike','battery','parts'].forEach(x=>{
+    const b=document.getElementById('cat-btn-'+x);
+    if(b){b.style.background=cat===x?'var(--green)':'var(--surface)';b.style.color=cat===x?'#fff':'var(--text2)';}
+  });
+  const isBat=cat==='battery';
+  const isParts=cat==='parts';
+  const ftEl=document.getElementById('prod-filter-type');
+  const ahEl=document.getElementById('prod-filter-ah');
+  const sbk=document.getElementById('stock-filter-brand-bike');
+  const sbb=document.getElementById('stock-filter-brand-bat');
+  if(ftEl) ftEl.style.display=(isBat||isParts)?'none':'';
+  if(ahEl) ahEl.style.display=isBat?'':'none';
+  if(sbk) sbk.style.display=(isBat||isParts)?'none':'';
+  if(sbb) sbb.style.display=isBat?'':'none';
+  if(isParts){renderPartsList();}
+  else{renderStockList();}
+}
+
+// ── Parts ──
+let partTypeFilter='tire';
+function setPartFilter(t){partTypeFilter=t;renderPartsList();}
+
+function renderPartsList(){
+  const q=(document.getElementById('prod-search').value||'').toLowerCase();
+  let list=parts.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.ptype||'').toLowerCase().includes(q)||(p.size||'').toLowerCase().includes(q));
+  // tire = ยางนอก+ยางใน, ctrl = กล่องควบคุม
+  if(partTypeFilter==='tire') list=list.filter(p=>p.ptype==='ยางนอก'||p.ptype==='ยางใน');
+  else if(partTypeFilter==='ctrl') list=list.filter(p=>p.ptype==='กล่องควบคุม');
+  const filtered=list;
+  document.getElementById('prod-count').textContent=filtered.length;
+  const el=document.getElementById('stock-list');
+
+  const cntTire=parts.filter(p=>p.ptype==='ยางนอก'||p.ptype==='ยางใน').length;
+  const cntCtrl=parts.filter(p=>p.ptype==='กล่องควบคุม').length;
+  const tabStyle=(active,bg,fg)=>`flex:1;padding:9px 4px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:'Sarabun',sans-serif;background:${active?bg:'var(--surface)'};color:${active?'#fff':fg}`;
+
+  let html=`<div style="padding:10px 12px 0">
+    <button class="btn btn-primary" style="width:100%;margin-bottom:10px" onclick="showAddPartModal()">+ เพิ่มอะไหล่ใหม่</button>
+    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:10px">
+      <button onclick="setPartFilter('tire')" style="${tabStyle(partTypeFilter==='tire','var(--green)','var(--gm)')}">🛞 ยางรถ ${cntTire}</button>
+      <button onclick="setPartFilter('ctrl')" style="${tabStyle(partTypeFilter==='ctrl','var(--orange)','var(--orange)')}">📦 กล่องควบคุม ${cntCtrl}</button>
+    </div>
+  </div>`;
+  if(!filtered.length){
+    html+='<div style="color:var(--text3);text-align:center;padding:20px;font-size:13px">ยังไม่มีอะไหล่ในหมวดนี้</div>';
+    el.innerHTML=html;return;
+  }
+  html+=`<div style="display:grid;grid-template-columns:90px 1fr 80px 70px;gap:8px;padding:7px 12px;background:var(--surface2);border-bottom:1px solid var(--border)">
+    <span style="font-size:11px;font-weight:600;color:var(--text3)">ประเภท</span>
+    <span style="font-size:11px;font-weight:600;color:var(--text3)">ขนาด/รุ่น</span>
+    <span style="font-size:11px;font-weight:600;color:var(--text3)">ราคา</span>
+    <span style="font-size:11px;font-weight:600;color:var(--text3);text-align:right">รวม</span>
+  </div>`;
+  html+=filtered.map(p=>{
+    const sA=parseInt(p.stockA)||0;const sB=parseInt(p.stockB)||0;const tot=sA+sB;
+    const out=tot<=0;
+    // ยางนอก=ฟ้า, ยางใน=เขียว, กล่อง=ส้ม
+    const typeColor=p.ptype==='ยางนอก'?'var(--bl);color:var(--blue)':p.ptype==='ยางใน'?'var(--gl);color:var(--gm)':'var(--ol);color:var(--orange)';
+    return `<div onclick="viewPart(${p.id})" style="display:grid;grid-template-columns:90px 1fr 80px 70px;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer">
+      <div><span style="background:${typeColor};border-radius:6px;padding:3px 7px;font-size:10px;font-weight:700;display:inline-block">${p.ptype||'อะไหล่'}</span></div>
+      <div>
+        <div style="font-weight:500;font-size:13px">${p.size||p.name}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">วัดเขา ${sA} · สนาม ${sB}</div>
+      </div>
+      <div style="font-size:13px;color:var(--gm)">฿${Number(p.price).toLocaleString()}</div>
+      <div style="text-align:right">${out?'<span style="font-size:12px;color:var(--red);font-weight:600">หมด</span>':'<span style="font-size:15px;font-weight:700">'+tot+'</span>'}</div>
+    </div>`;
+  }).join('');
+  el.innerHTML=html;
+}
+
+const PART_TYPES=['ยางนอก','ยางใน','กล่องควบคุม'];
+const TIRE_SIZES=['14x2.50','3.00-8','3.00-10'];
+const CTRL_VOLTS=['36V','48V','60V','64V'];
+const CTRL_WATTS=['350W','450W','500W','600W','800W','1000W','1200W'];
+
+function showAddPartModal(){
+  document.getElementById('ov').innerHTML=`<div class="overlay"><div class="modal" style="width:360px;max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+    <h3>🔩 เพิ่มอะไหล่ใหม่</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+      <div>
+        <label class="form-label">ประเภท *</label>
+        <select id="np-part-type" style="width:100%" onchange="onPartTypeChange()">
+          <option value="">-- เลือกประเภท --</option>
+          ${PART_TYPES.map(t=>`<option>${t}</option>`).join('')}
+        </select>
+      </div>
+      <!-- ยาง: เลือกขนาด -->
+      <div id="part-tire-fields" style="display:none">
+        <label class="form-label">ขนาด</label>
+        <select id="np-part-size-sel" style="width:100%" onchange="onPartSizeSel()">
+          <option value="">-- เลือกขนาด --</option>
+          ${TIRE_SIZES.map(s=>`<option>${s}</option>`).join('')}
+          <option value="__custom__">+ พิมพ์ขนาดเอง</option>
+        </select>
+        <input id="np-part-size-custom" placeholder="เช่น 90/90-12" style="width:100%;margin-top:6px;display:none">
+      </div>
+      <!-- กล่องควบคุม: Volt + Watt -->
+      <div id="part-ctrl-fields" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <label class="form-label">โวลต์</label>
+            <select id="np-part-volt" style="width:100%">
+              ${CTRL_VOLTS.map(v=>`<option>${v}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="form-label">วัตต์</label>
+            <select id="np-part-watt" style="width:100%">
+              ${CTRL_WATTS.map(w=>`<option>${w}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div><label class="form-label">ราคา (฿)</label><input id="np-part-price" type="number" min="0" placeholder="0" style="width:100%"></div>
+      <div>
+        <label class="form-label">สต็อก</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">📍 วัดเขา</div>
+            <input id="np-part-stockA" type="number" min="0" value="0" style="width:100%;text-align:center;font-size:15px;font-weight:600">
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">📍 สนามกีฬา</div>
+            <input id="np-part-stockB" type="number" min="0" value="0" style="width:100%;text-align:center;font-size:15px;font-weight:600">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn" style="flex:1" onclick="closeOv()">ยกเลิก</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveNewPart()">💾 บันทึก</button>
+    </div>
+  </div></div>`;
+}
+
+function onPartTypeChange(){
+  const t=document.getElementById('np-part-type').value;
+  const tire=document.getElementById('part-tire-fields');
+  const ctrl=document.getElementById('part-ctrl-fields');
+  const isTire=(t==='ยางนอก'||t==='ยางใน');
+  const isCtrl=(t==='กล่องควบคุม');
+  if(tire)tire.style.display=isTire?'block':'none';
+  if(ctrl)ctrl.style.display=isCtrl?'block':'none';
+}
+function onPartSizeSel(){
+  const v=document.getElementById('np-part-size-sel').value;
+  const custom=document.getElementById('np-part-size-custom');
+  if(custom)custom.style.display=v==='__custom__'?'block':'none';
+}
+
+async function saveNewPart(){
+  const ptype=document.getElementById('np-part-type').value;
+  if(!ptype){alert('กรุณาเลือกประเภท');return;}
+  const price=parseFloat(document.getElementById('np-part-price').value)||0;
+  const stockA=parseInt(document.getElementById('np-part-stockA').value)||0;
+  const stockB=parseInt(document.getElementById('np-part-stockB').value)||0;
+  let size='';
+  if(ptype==='ยางนอก'||ptype==='ยางใน'){
+    const sel=document.getElementById('np-part-size-sel').value;
+    size=sel==='__custom__'?document.getElementById('np-part-size-custom').value.trim():sel;
+    if(!size){alert('กรุณาเลือก/กรอกขนาด');return;}
+  } else if(ptype==='กล่องควบคุม'){
+    const volt=document.getElementById('np-part-volt').value;
+    const watt=document.getElementById('np-part-watt').value;
+    size=volt+' '+watt;
+  }
+  const name=ptype+' '+size;
+  const np={id:nextPartId++,ptype,size,name,price,stockA,stockB,stock:stockA+stockB};
+  parts.push(np);
+  showSync('saving','💾 บันทึก...');
+  try{await api.save('parts',np);showSync('ok','✅ เพิ่มอะไหล่แล้ว');saveCache();}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  closeOv();renderPartsList();
+}
+
+function viewPart(id){
+  const p=parts.find(x=>x.id==id);if(!p)return;
+  document.getElementById('ov').innerHTML=`<div class="overlay"><div class="modal" style="width:340px" onclick="event.stopPropagation()">
+    <h3>🔩 ${p.ptype}</h3>
+    <div style="font-size:15px;font-weight:600;margin:4px 0 12px">${p.size||p.name}</div>
+    <div style="font-size:13px;color:var(--gm);margin-bottom:12px">ราคา ฿${Number(p.price).toLocaleString()}</div>
+    <label class="form-label">สต็อก</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">📍 วัดเขา</div>
+        <input id="vp-stockA" type="number" min="0" value="${parseInt(p.stockA)||0}" style="width:100%;text-align:center;font-size:16px;font-weight:600">
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">📍 สนามกีฬา</div>
+        <input id="vp-stockB" type="number" min="0" value="${parseInt(p.stockB)||0}" style="width:100%;text-align:center;font-size:16px;font-weight:600">
+      </div>
+    </div>
+    <div><label class="form-label">ราคา (฿)</label><input id="vp-price" type="number" value="${p.price||0}" style="width:100%"></div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn btn-danger" style="flex:1" onclick="requirePin('ลบอะไหล่',()=>delPart(${p.id}))">🗑 ลบ</button>
+      <button class="btn" style="flex:1" onclick="closeOv()">ปิด</button>
+      <button class="btn btn-primary" style="flex:1.3" onclick="saveViewPart(${p.id})">💾 บันทึก</button>
+    </div>
+  </div></div>`;
+}
+async function saveViewPart(id){
+  const p=parts.find(x=>x.id==id);if(!p)return;
+  p.stockA=Math.max(0,parseInt(document.getElementById('vp-stockA').value)||0);
+  p.stockB=Math.max(0,parseInt(document.getElementById('vp-stockB').value)||0);
+  p.stock=p.stockA+p.stockB;
+  const pr=document.getElementById('vp-price').value;
+  if(pr!=='')p.price=parseFloat(pr)||p.price;
+  showSync('saving','💾 บันทึก...');
+  try{await api.upd('parts',id,p);showSync('ok','✅ บันทึกแล้ว');saveCache();}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  closeOv();renderPartsList();
+}
+async function delPart(id){
+  parts=parts.filter(x=>x.id!=id);
+  showSync('saving','💾 ลบ...');
+  try{await api.del('parts',id);showSync('ok','✅ ลบแล้ว');saveCache();}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  closeOv();renderPartsList();
+}
+
+let partAdjTimer=null;
+
+// ── Stock List ──
+function renderStockList(){
+  const q=(document.getElementById('prod-search').value||'').toLowerCase();
+  const ft=document.getElementById('prod-filter-type').value;
+  const ahEl=document.getElementById('prod-filter-ah');
+  const fah=ahEl?ahEl.value:'';
+  const isBat=stockCat==='battery';
+  const sbk=document.getElementById('stock-filter-brand-bike');
+  const sbb=document.getElementById('stock-filter-brand-bat');
+  const fbrand=isBat?(sbb?sbb.value:''):(sbk?sbk.value:'');
+  const filtered=products.filter(p=>{
+    const mq=!q||(p.brand+' '+p.model+(p.ah||'')).toLowerCase().includes(q);
+    const mt=!ft||p.type===ft;
+    const mah=!fah||p.ah===fah;
+    const mb=!fbrand||p.brand===fbrand;
+    const mc=isBat?(p.category==='battery'):(p.category!=='battery');
+    return mq&&(isBat?mah:mt)&&mb&&mc;
+  });
+  document.getElementById('prod-count').textContent=filtered.length;
+  const el=document.getElementById('stock-list');
+  if(!filtered.length){el.innerHTML='<div style="color:var(--text3);text-align:center;padding:20px;font-size:13px">ไม่พบสินค้า</div>';return;}
+
+  if(isBat){
+    el.innerHTML=`<div style="display:grid;grid-template-columns:80px 1fr 90px 80px;gap:8px;padding:7px 12px;background:var(--surface2);border-bottom:1px solid var(--border)">
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase">Volt / Ah</span>
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase">แบรนด์ / รุ่น</span>
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase">ราคา</span>
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;text-align:right;display:block">จำนวน</span>
+    </div>`+
+    filtered.map(p=>{
+      const totalStock=(parseInt(p.stockA)||0)+(parseInt(p.stockB)||0);
+      const stockDisplay=totalStock===0
+        ?`<span style="font-size:13px;font-weight:600;color:var(--red)">หมด</span>`
+        :`<span style="font-size:15px;font-weight:700;color:var(--text)">${totalStock}</span><span style="font-size:11px;color:var(--text3);margin-left:2px">ก้อน</span>`;
+      return `<div onclick="viewProduct(${p.id})" style="display:grid;grid-template-columns:80px 1fr 90px 80px;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <div style="background:var(--ol);color:var(--orange);border-radius:6px;padding:2px 5px;text-align:center;font-size:11px;font-weight:700">${p.volt||'12V'}</div>
+          <div style="background:var(--bl);color:var(--blue);border-radius:6px;padding:2px 5px;text-align:center;font-size:11px;font-weight:700">${p.ah||'-'}</div>
+        </div>
+        <div>
+          ${p.brand?'<div style="font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.5px;text-transform:uppercase">'+p.brand+'</div>':''}
+          <div style="font-weight:500;font-size:13px">${p.model}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px">วัดเขา: <strong>${parseInt(p.stockA)||0}</strong> &nbsp; สนามกีฬา: <strong>${parseInt(p.stockB)||0}</strong></div>
+        </div>
+        <div style="font-size:13px;font-weight:500;color:var(--gm)">฿${Number(p.price).toLocaleString()}</div>
+        <div style="text-align:right">${stockDisplay}</div>
+      </div>`;
+    }).join('');
+  } else {
+    el.innerHTML=`<div style="display:grid;grid-template-columns:70px 1fr 90px 80px;gap:8px;padding:7px 12px;background:var(--surface2);border-bottom:1px solid var(--border)">
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase">ประเภท</span>
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase">แบรนด์ / รุ่น</span>
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase">ราคา</span>
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;text-align:right;display:block">จำนวน</span>
+    </div>`+
+    filtered.map(p=>{
+      const total=(p.colors||[]).reduce((s,cc)=>(parseInt(cc.stockA)||0)+(parseInt(cc.stockB)||0)+s,0);
+      const stockDisplay=total===0
+        ?`<span style="font-size:13px;font-weight:600;color:var(--red)">หมด</span>`
+        :`<span style="font-size:15px;font-weight:700;color:var(--text)">${total}</span><span style="font-size:11px;color:var(--text3);margin-left:2px">คัน</span>`;
+      return `<div onclick="viewProduct(${p.id})" style="display:grid;grid-template-columns:70px 1fr 90px 80px;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+        <div><span class="badge badge-blue" style="font-size:10px">${p.type||'รถ'}</span></div>
+        <div>
+          ${p.brand?'<div style="font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.5px;text-transform:uppercase">'+p.brand+'</div>':''}
+          <div style="font-weight:500;font-size:13px">${p.model}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">
+            ${(p.colors||[]).map(cc=>{
+              const s=(parseInt(cc.stockA)||0)+(parseInt(cc.stockB)||0);
+              const outOfStock=s===0;
+              return '<span style="display:inline-flex;align-items:center;gap:3px;border:1px solid var(--border);border-radius:99px;padding:2px 7px;background:var(--surface)"><span style="width:9px;height:9px;border-radius:50%;background:'+cc.color+';border:1px solid rgba(0,0,0,.12);flex-shrink:0"></span><span style="font-size:11px;font-weight:500;color:'+(outOfStock?'var(--red)':'var(--text)')+'">'+(cc.name||colorName(cc.color))+'</span>'+(outOfStock?'<span style="font-size:10px;color:var(--red);font-weight:600">หมด</span>':'<span style="font-size:10px;color:var(--text3)">'+s+'</span>')+'</span>';
+            }).join('')}
+          </div>
+        </div>
+        <div style="font-size:13px;font-weight:500;color:var(--gm)">฿${Number(p.price).toLocaleString()}</div>
+        <div style="text-align:right">${stockDisplay}</div>
+      </div>`;
+    }).join('');
+  }
+}
+async function adjustStock(pid,ci,delta){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  const c=p.colors[ci];if(!c)return;
+  c.stock=Math.max(0,(parseInt(c.stock)||0)+delta);
+  showSync('saving','💾 อัปเดตสต็อก...');
+  try{await api.upd('products',pid,{...p,colors:JSON.stringify(p.colors)});showSync('ok','✅ อัปเดตแล้ว');}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  renderStockList();renderPosGrid();
+}
+
+
+function viewProduct(pid){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  const isBat=p.category==='battery';
+
+  if(isBat){
+    // ── Battery view ──
+    const totalBat=(parseInt(p.stockA)||0)+(parseInt(p.stockB)||0);
+    document.getElementById('ov').innerHTML=`<div class="overlay"><div class="modal" style="width:420px;max-height:88vh;overflow-y:auto">
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px">
+        <div style="flex:1">
+          <h3 style="margin-bottom:4px">${p.brand?'<span style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">'+p.brand+'</span><br>':''} 🔋 ${p.model}</h3>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
+            <span style="background:var(--ol);color:var(--orange);border-radius:6px;padding:3px 10px;font-size:13px;font-weight:700">${p.volt||'12V'}</span>
+            <span style="background:var(--bl);color:var(--blue);border-radius:6px;padding:3px 10px;font-size:13px;font-weight:700">${p.ah||'-'}</span>
+            <span style="font-size:14px;font-weight:600;color:var(--gm)">฿${Number(p.price).toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">แก้ตัวเลขสต็อกแต่ละสาขาได้เลย → กด "บันทึก"</div>
+      <!-- ช่องแก้ชื่อ/ราคา (ซ่อนจนกดแก้ไข) -->
+      <div id="edit-info-${p.id}" style="display:none;background:var(--ol);border-radius:8px;padding:10px 12px;margin-bottom:12px">
+        <div style="font-size:11px;color:var(--orange);font-weight:600;margin-bottom:6px">แก้ชื่อรุ่น / ราคา</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div>
+            <label class="form-label">ชื่อรุ่น</label>
+            <input id="edit-model-${p.id}" value="${p.model||''}" style="width:100%">
+          </div>
+          <div>
+            <label class="form-label">ราคา (฿)</label>
+            <input id="edit-price-${p.id}" type="number" value="${p.price||0}" style="width:100%">
+          </div>
+        </div>
+      </div>
+      <div class="slabel" style="margin-bottom:6px">สต็อกตามสาขา · รวม ${totalBat} ก้อน</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:5px">📍 สาขาวัดเขา</div>
+          <input id="bat-siA-${p.id}" type="number" min="0" value="${parseInt(p.stockA)||0}" readonly
+            style="width:100%;text-align:center;font-size:18px;font-weight:600;padding:6px;border-radius:7px;border:1px solid var(--border);background:var(--surface);cursor:not-allowed;color:var(--text)">
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:5px">📍 สาขาสนามกีฬา</div>
+          <input id="bat-siB-${p.id}" type="number" min="0" value="${parseInt(p.stockB)||0}" readonly
+            style="width:100%;text-align:center;font-size:18px;font-weight:600;padding:6px;border-radius:7px;border:1px solid var(--border);background:var(--surface);cursor:not-allowed;color:var(--text)">
+        </div>
+      </div>
+      <div style="display:flex;gap:7px;padding-top:10px;border-top:1px solid var(--border)">
+        <button class="btn btn-danger" style="flex:1" onclick="requirePin('ลบแบตเตอรี่นี้',()=>{closeOv();deleteProduct(${p.id});})">🗑 ลบ</button>
+        <button class="btn" style="flex:1" onclick="closeOv()">ปิด</button>
+        <button class="btn btn-orange" id="edit-stock-btn-${p.id}" style="flex:1.5" onclick="requirePin('แก้ไขสต็อก',()=>enableBatStockEdit(${p.id}))">✏️ แก้ไขสต็อก</button>
+      </div>
+      <div id="save-stock-row-${p.id}" style="display:none;margin-top:8px">
+        <button class="btn btn-primary" style="width:100%;padding:10px;font-size:14px" onclick="saveBatStock(${p.id})">💾 บันทึกทั้งหมด</button>
+      </div>
+    </div></div>`;
+  } else {
+    // ── Bike view ──
+    const totalStock=c=>((parseInt(c.stockA)||0)+(parseInt(c.stockB)||0));
+    const colorRows=(p.colors||[]).map((c,ci)=>`
+      <div style="padding:9px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <div style="width:20px;height:20px;border-radius:50%;background:${c.color};border:1px solid rgba(0,0,0,.15);flex-shrink:0"></div>
+          <span style="font-size:13px;font-weight:500;flex:1">${c.name||colorName(c.color)}</span>
+          <span style="font-size:11px;color:var(--text3)">รวม ${totalStock(c)} | ขาย ${c.sold||0}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:var(--surface2);border-radius:8px;padding:7px 10px;text-align:center">
+            <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:5px">📍 สาขาวัดเขา</div>
+            <input id="siA-${p.id}-${ci}" type="number" min="0" value="${parseInt(c.stockA)||0}" readonly
+              style="width:100%;text-align:center;font-size:16px;font-weight:600;padding:5px;border-radius:7px;border:1px solid var(--border);background:var(--surface);cursor:not-allowed;color:var(--text)">
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:7px 10px;text-align:center">
+            <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:5px">📍 สาขาสนามกีฬา</div>
+            <input id="siB-${p.id}-${ci}" type="number" min="0" value="${parseInt(c.stockB)||0}" readonly
+              style="width:100%;text-align:center;font-size:16px;font-weight:600;padding:5px;border-radius:7px;border:1px solid var(--border);background:var(--surface);cursor:not-allowed;color:var(--text)">
+          </div>
+        </div>
+      </div>`).join('');
+    document.getElementById('ov').innerHTML=`<div class="overlay"><div class="modal" style="width:420px;max-height:88vh;overflow-y:auto">
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+        <div style="flex:1">
+          <h3 style="margin-bottom:4px">${p.brand?'<span style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">'+p.brand+'</span><br>':''} ${p.model}</h3>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:5px">
+            <span class="badge badge-blue">${p.type||''}</span>
+            <span style="font-size:14px;font-weight:600;color:var(--gm)">฿${Number(p.price).toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+      <!-- ช่องแก้ชื่อ/ราคา (ซ่อนจนกดแก้ไข) -->
+      <div id="edit-info-${p.id}" style="display:none;background:var(--ol);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--orange);font-weight:600;margin-bottom:6px">แก้ชื่อรุ่น / ราคา</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div>
+            <label class="form-label">ชื่อรุ่น</label>
+            <input id="edit-model-${p.id}" value="${p.model||''}" style="width:100%">
+          </div>
+          <div>
+            <label class="form-label">ราคา (฿)</label>
+            <input id="edit-price-${p.id}" type="number" value="${p.price||0}" style="width:100%">
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">แก้ตัวเลขแต่ละสาขาได้เลย → กด "บันทึก" ครั้งเดียว</div>
+      <div class="slabel" style="margin-bottom:4px">สต็อกตามสีและสาขา</div>
+      ${colorRows}
+      <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--border);display:flex;gap:7px">
+        <button class="btn btn-danger" style="flex:1" onclick="requirePin('ลบสินค้านี้ออกจากระบบ',()=>{closeOv();deleteProduct(${p.id});})">🗑 ลบ</button>
+        <button class="btn" style="flex:1" onclick="closeOv()">ปิด</button>
+        <button class="btn btn-orange" id="edit-stock-btn-${p.id}" style="flex:1.5" onclick="requirePin('แก้ไขสต็อก',()=>enableStockEdit(${p.id}))">✏️ แก้ไขสต็อก</button>
+      </div>
+      <div id="color-section-${p.id}" style="display:none"></div>
+      <div id="save-stock-row-${p.id}" style="display:none;margin-top:8px">
+        <button class="btn btn-primary" style="width:100%;padding:10px;font-size:14px" onclick="saveAllStock(${p.id})">💾 บันทึกทั้งหมด</button>
+      </div>
+    </div></div>`;
+    renderColorSection(p.id);
+  }
+}
+
+function enableBatStockEdit(pid){
+  const elA=document.getElementById('bat-siA-'+pid);
+  const elB=document.getElementById('bat-siB-'+pid);
+  [elA,elB].forEach(el=>{if(el){el.removeAttribute('readonly');el.style.background='var(--surface)';el.style.cursor='text';el.style.borderColor='#9eb8ae';}});
+  const editBtn=document.getElementById('edit-stock-btn-'+pid);
+  if(editBtn)editBtn.style.display='none';
+  const saveRow=document.getElementById('save-stock-row-'+pid);
+  if(saveRow)saveRow.style.display='block';
+  const editInfo=document.getElementById('edit-info-'+pid);
+  if(editInfo) editInfo.style.display='block';
+}
+
+async function saveBatStock(pid){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  const elA=document.getElementById('bat-siA-'+pid);
+  const elB=document.getElementById('bat-siB-'+pid);
+  const mEl=document.getElementById('edit-model-'+pid);
+  const prEl=document.getElementById('edit-price-'+pid);
+  if(elA) p.stockA=Math.max(0,parseInt(elA.value)||0);
+  if(elB) p.stockB=Math.max(0,parseInt(elB.value)||0);
+  if(mEl&&mEl.value.trim()) p.model=mEl.value.trim();
+  if(prEl&&prEl.value!=='') p.price=parseFloat(prEl.value)||p.price;
+  showSync('saving','💾 บันทึกสต็อก...');
+  try{
+    const payload={...p,colors:JSON.stringify(p.colors||[]),stockA:p.stockA,stockB:p.stockB};
+    await api.upd('products',pid,payload);
+    showSync('ok','✅ บันทึกแล้ว');
+    saveCache();
+  }catch{showSync('err','❌ ไม่สำเร็จ');}
+  closeOv();renderStockList();renderPosGrid();
+}
+
+function enableStockEdit(pid){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  // unlock inputs
+  p.colors.forEach((col,ci)=>{
+    ['A','B'].forEach(br=>{
+      const el=document.getElementById('si'+br+'-'+pid+'-'+ci);
+      if(el){el.removeAttribute('readonly');el.style.background='var(--surface)';el.style.cursor='text';el.style.borderColor='#9eb8ae';}
+    });
+  });
+  const editBtn=document.getElementById('edit-stock-btn-'+pid);
+  if(editBtn)editBtn.style.display='none';
+  const saveRow=document.getElementById('save-stock-row-'+pid);
+  if(saveRow)saveRow.style.display='block';
+  // แสดงช่องแก้ชื่อ/ราคา
+  const editInfo=document.getElementById('edit-info-'+pid);
+  if(editInfo) editInfo.style.display='block';
+  // เพิ่มแถบจัดการสี (ลบ/เพิ่มสี)
+  const colorSection=document.getElementById('color-section-'+pid);
+  if(colorSection) colorSection.style.display='block';
+}
+
+function renderColorSection(pid){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  const el=document.getElementById('color-section-'+pid);if(!el)return;
+  el.innerHTML=`
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <div class="slabel" style="margin-bottom:8px">จัดการสีรถ</div>
+      <div id="color-manage-rows-${pid}">
+        ${(p.colors||[]).map((col,ci)=>`
+          <div id="cmrow-${pid}-${ci}" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+            <div style="width:18px;height:18px;border-radius:50%;background:${col.color};border:1px solid rgba(0,0,0,.15);flex-shrink:0"></div>
+            <span style="flex:1;font-size:13px">${col.name||colorName(col.color)}</span>
+            <button class="btn btn-danger btn-sm" style="font-size:11px" onclick="requirePin('ลบสี ${col.name||colorName(col.color)}',()=>removeColorFromProduct(${pid},${ci}))">ลบสี</button>
+          </div>`).join('')}
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <input type="color" id="new-color-hex-${pid}" value="#cccccc" style="width:38px;height:34px;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:2px">
+        <input id="new-color-name-${pid}" placeholder="ชื่อสี เช่น เขียวมิ้นท์" style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="addColorToProduct(${pid})">+ เพิ่มสี</button>
+      </div>
+    </div>`;
+}
+
+async function addColorToProduct(pid){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  const hex=document.getElementById('new-color-hex-'+pid).value;
+  const name=document.getElementById('new-color-name-'+pid).value.trim()||colorName(hex);
+  if(p.colors.find(c=>c.color===hex)){alert('มีสีนี้อยู่แล้ว');return;}
+  p.colors.push({color:hex,name,stockA:0,stockB:0,sold:0});
+  showSync('saving','💾 บันทึกสีใหม่...');
+  try{
+    await api.upd('products',pid,{...p,colors:JSON.stringify(p.colors)});
+    showSync('ok','✅ เพิ่มสีแล้ว');
+    // โหลด products ใหม่จาก Sheets ให้ตรงกัน
+    const fresh=await api.get('products');
+    if(fresh&&fresh.length){
+      products=fresh;
+      products.forEach(pr=>{
+        if(typeof pr.colors==='string'){try{pr.colors=JSON.parse(pr.colors);}catch{pr.colors=[];}}
+        if(!Array.isArray(pr.colors))pr.colors=[];
+        pr.colors.forEach(cc=>{
+          if(!cc.name)cc.name=colorName(cc.color);
+          cc.stockA=parseInt(cc.stockA)||0;
+          cc.stockB=parseInt(cc.stockB)||0;
+        });
+        pr.stockA=parseInt(pr.stockA)||0;
+        pr.stockB=parseInt(pr.stockB)||0;
+      });
+    }
+    saveCache();
+    renderStockList();
+    renderPosGrid();
+    closeOv();
+    setTimeout(()=>viewProduct(pid),50);
+  }catch{
+    showSync('err','❌ ไม่สำเร็จ');
+    p.colors.pop();
+  }
+}
+
+async function removeColorFromProduct(pid,ci){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  const col=p.colors[ci];
+  if(!col)return;
+  const s=(parseInt(col.stockA)||0)+(parseInt(col.stockB)||0);
+  if(s>0&&!confirm(`สีนี้ยังมีสต็อก ${s} คัน ยืนยันลบ?`))return;
+  p.colors.splice(ci,1);
+  showSync('saving','💾 บันทึก...');
+  try{await api.upd('products',pid,{...p,colors:JSON.stringify(p.colors)});showSync('ok','✅ ลบสีแล้ว');saveCache();}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  closeOv();viewProduct(pid);
+}
+
+
+
+async function saveAllStock(pid){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  // บันทึกชื่อ/ราคา ถ้าแก้
+  const mEl=document.getElementById('edit-model-'+pid);
+  const prEl=document.getElementById('edit-price-'+pid);
+  if(mEl&&mEl.value.trim()) p.model=mEl.value.trim();
+  if(prEl&&prEl.value!=='') p.price=parseFloat(prEl.value)||p.price;
+  p.colors.forEach((c,ci)=>{
+    const elA=document.getElementById('siA-'+pid+'-'+ci);
+    const elB=document.getElementById('siB-'+pid+'-'+ci);
+    if(elA) c.stockA=Math.max(0,parseInt(elA.value)||0);
+    if(elB) c.stockB=Math.max(0,parseInt(elB.value)||0);
+    c.stock=(c.stockA||0)+(c.stockB||0);
+  });
+  showSync('saving','💾 บันทึก...');
+  try{await api.upd('products',pid,{...p,colors:JSON.stringify(p.colors)});showSync('ok','✅ บันทึกแล้ว');}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  saveCache();closeOv();renderStockList();renderPosGrid();
+}
+async function deleteProduct(pid){
+  products=products.filter(x=>x.id!=pid);
+  delete cart[Object.keys(cart).find(k=>k.startsWith(pid+'__'))];
+  showSync('saving','💾 กำลังลบ...');
+  try{await api.del('products',pid);showSync('ok','✅ ลบสินค้าแล้ว');}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  renderStockList();renderPosGrid();
+}
+
+// ── Color Summary ──
+function renderColorSummary(){
+  // Branch filter
+  const bf=document.getElementById('branch-filter')?document.getElementById('branch-filter').value:'all';
+  const colorMap={};
+  products.forEach(p=>{
+    (p.colors||[]).forEach(c=>{
+      if(!colorMap[c.color])colorMap[c.color]={name:c.name||colorName(c.color),stockA:0,stockB:0,sold:0};
+      colorMap[c.color].stockA+=parseInt(c.stockA)||0;
+      colorMap[c.color].stockB+=parseInt(c.stockB)||0;
+      colorMap[c.color].sold+=parseInt(c.sold)||0;
+    });
+  });
+  const keys=Object.keys(colorMap);
+  if(!keys.length){document.getElementById('color-summary').innerHTML='';return;}
+  document.getElementById('color-summary').innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div class="slabel" style="margin:0">สรุปสต็อกตามสี</div>
+      <select id="branch-filter" onchange="renderStockList()" style="font-size:12px;padding:4px 8px;border-radius:8px">
+        <option value="all">ทุกสาขา</option>
+        <option value="A">สาขาวัดเขา</option>
+        <option value="B">สาขาสนามกีฬา</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:12px">
+      ${keys.map(k=>{
+        const d=colorMap[k];
+        const showA=bf==='all'||bf==='A';
+        const showB=bf==='all'||bf==='B';
+        return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px;display:flex;align-items:center;gap:9px">
+          <div style="width:18px;height:18px;border-radius:50%;background:${k};border:1px solid rgba(0,0,0,.15);flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:500">${d.name}</div>
+            ${showA?`<div style="font-size:11px;color:var(--text3)">วัดเขา: <strong>${d.stockA}</strong></div>`:''}
+            ${showB?`<div style="font-size:11px;color:var(--text3)">สนามกีฬา: <strong>${d.stockB}</strong></div>`:''}
+            <div style="font-size:11px;color:var(--text3)">ขายแล้ว: ${d.sold}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── POS Grid ──
+function renderPosGrid(){
+  const ft=document.getElementById('filter-type').value;
+  const fb=document.getElementById('filter-brand').value;
+  const fq=(document.getElementById('filter-search').value||'').toLowerCase();
+  // แสดงทุกรุ่น ไม่กรองออกแม้หมดสต็อก
+  const filtered=products.filter(p=>{
+    const mt=!ft||p.type===ft;
+    const mb=!fb||p.brand===fb;
+    const mq=!fq||(p.brand+' '+p.model).toLowerCase().includes(fq);
+    const mc=posCat==='battery'?(p.category==='battery'):(p.category!=='battery');
+    return mt&&mb&&mq&&mc;
+  });
+  const g=document.getElementById('pos-grid');
+  if(!filtered.length){g.innerHTML='<div style="color:var(--text3);text-align:center;padding:20px;font-size:13px;grid-column:1/-1">ไม่พบสินค้า</div>';return;}
+  g.innerHTML=filtered.map(p=>{
+    const isBat=p.category==='battery';
+    if(isBat){
+      const totalStock=(parseInt(p.stockA)||0)+(parseInt(p.stockB)||0);
+      const allOut=totalStock===0;
+      return `<div class="veh-card" onclick="showBatteryBuyPicker(${p.id})" style="${allOut?'opacity:0.75':''}">
+        ${allOut?'<div style="text-align:right;margin-bottom:4px"><span class="badge badge-red" style="font-size:10px">หมดสต็อก</span></div>':''}
+        ${p.brand?`<div class="veh-brand">${p.brand}</div>`:''}
+        <div class="veh-model">${p.model}</div>
+        <div style="display:flex;gap:5px;margin:4px 0;flex-wrap:wrap">
+          <span style="background:var(--ol);color:var(--orange);border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">${p.volt||'12V'}</span>
+          <span style="background:var(--bl);color:var(--blue);border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">${p.ah||''}</span>
+        </div>
+        <div class="veh-price">฿${Number(p.price).toLocaleString()}</div>
+        <div style="margin-top:6px;font-size:12px;color:${allOut?'var(--red)':'var(--text2)'};font-weight:600">
+          ${allOut?'หมดสต็อก':`วัดเขา ${parseInt(p.stockA)||0} · สนาม ${parseInt(p.stockB)||0}`}
+        </div>
+      </div>`;
+    }
+    const totalStock=(p.colors||[]).reduce((s,cc)=>{const ha=(cc.stockA!==undefined||cc.stockB!==undefined);return s+(ha?((parseInt(cc.stockA)||0)+(parseInt(cc.stockB)||0)):(parseInt(cc.stock)||0));},0);
+    const allOut=totalStock===0;
+    return `<div class="veh-card" onclick="showColorPicker(${p.id})" style="${allOut?'opacity:0.75':''}">
+      ${allOut?'<div style="text-align:right;margin-bottom:4px"><span class="badge badge-red" style="font-size:10px">หมดสต็อก</span></div>':''}
+      ${p.brand?`<div class="veh-brand">${p.brand}</div>`:''}
+      <div class="veh-model">${p.model}</div>
+      <span class="veh-type">${p.type}</span>
+      <div class="veh-price">฿${Number(p.price).toLocaleString()}</div>
+      <div class="veh-stock" style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:5px">
+        ${(p.colors||[]).map(cc=>{
+          const ha=(cc.stockA!==undefined||cc.stockB!==undefined);const s=ha?((parseInt(cc.stockA)||0)+(parseInt(cc.stockB)||0)):(parseInt(cc.stock)||0);
+          const out=s===0;
+          return `<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;background:${out?'var(--rl)':'var(--surface2)'};border:1px solid ${out?'#f0c4be':'var(--border)'}">
+            <span style="width:12px;height:12px;border-radius:50%;background:${cc.color};border:1.5px solid ${cc.color==='#ffffff'||cc.color==='#f5f0e0'?'#bbb':'rgba(0,0,0,.15)'};flex-shrink:0"></span>
+            <span style="font-size:12px;font-weight:500;color:${out?'var(--red)':'var(--text)'};flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cc.name||colorName(cc.color)}</span>
+            <span style="font-size:12px;font-weight:600;color:${out?'var(--red)':'var(--text2)'};flex-shrink:0">${out?'หมด':s}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showBatteryBuyPicker(pid){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  const sA=parseInt(p.stockA)||0;const sB=parseInt(p.stockB)||0;
+  document.getElementById('ov').innerHTML=`<div class="overlay"><div class="modal" style="width:340px" onclick="event.stopPropagation()">
+    <h3>🔋 ซื้อแบตเตอรี่</h3>
+    <div style="margin-bottom:12px">
+      ${p.brand?`<div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">${p.brand}</div>`:''}
+      <div style="font-size:15px;font-weight:600">${p.model}</div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <span style="background:var(--ol);color:var(--orange);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700">${p.volt||'12V'}</span>
+        <span style="background:var(--bl);color:var(--blue);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700">${p.ah||''}</span>
+      </div>
+    </div>
+    <div class="slabel">เลือกสาขา</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button id="bat-branch-A" onclick="selectBranch('A')"
+        style="flex:1;padding:10px;border-radius:var(--r);border:2px solid var(--green);background:var(--green);color:#fff;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:600;cursor:pointer;${sA===0?'opacity:.4;cursor:not-allowed;':''}pointer-events:${sA===0?'none':'auto'}"
+        ${sA===0?'disabled':''}>
+        📍 วัดเขา<br><span style="font-size:11px;font-weight:400">${sA===0?'หมด':'เหลือ '+sA}</span>
+      </button>
+      <button id="bat-branch-B" onclick="selectBranch('B')"
+        style="flex:1;padding:10px;border-radius:var(--r);border:2px solid var(--border);background:var(--surface);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:13px;font-weight:500;cursor:pointer;${sB===0?'opacity:.4;cursor:not-allowed;':''}pointer-events:${sB===0?'none':'auto'}"
+        ${sB===0?'disabled':''}>
+        📍 สนามกีฬา<br><span style="font-size:11px;font-weight:400">${sB===0?'หมด':'เหลือ '+sB}</span>
+      </button>
+    </div>
+    <div class="slabel">ราคาขายจริง</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:5px">ราคาตั้ง: ฿${Number(p.price).toLocaleString()}</div>
+    <input id="actual-price" type="number" value="${p.price}" style="width:100%">
+    <div class="slabel" style="margin-top:12px">จำนวน</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+      <button class="adj-btn" style="width:36px;height:36px;font-size:20px" onclick="adjBatQty(-1)">−</button>
+      <input id="bat-qty" type="number" min="1" value="1" style="flex:1;text-align:center;font-size:18px;font-weight:600;padding:7px">
+      <button class="adj-btn" style="width:36px;height:36px;font-size:20px" onclick="adjBatQty(1)">+</button>
+    </div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn" style="flex:1" onclick="closeOv()">ยกเลิก</button>
+      <button class="btn btn-primary" style="flex:1" onclick="addBatToCart(${pid})">+ เพิ่มในตะกร้า</button>
+    </div>
+  </div></div>`;
+  // ถ้าสาขา A หมด auto-select B
+  if(sA===0&&sB>0) selectBranch('B');
+}
+
+function adjBatQty(d){
+  const el=document.getElementById('bat-qty');
+  if(el) el.value=Math.max(1,(parseInt(el.value)||1)+d);
+}
+
+function addBatToCart(pid){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  const price=parseFloat(document.getElementById('actual-price').value)||p.price;
+  const qty=Math.max(1,parseInt(document.getElementById('bat-qty').value)||1);
+  const key=`bat_${pid}_${selectedBranch}`;
+  const name=`${p.brand?p.brand+' ':''}${p.model}`;
+  if(cart[key]){cart[key].qty+=qty;}
+  else{cart[key]={pid,color:'#888',colorName:p.ah||'',price,name,type:'battery',qty,branch:selectedBranch,isBattery:true};}
+  closeOv();renderCart();updateCartFab();
+  if(window.innerWidth<=1024){const fab=document.getElementById('cart-fab');if(fab)fab.style.display='flex';}
+}
+
+function showColorPicker(pid){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  const allColors=p.colors||[];
+  document.getElementById('ov').innerHTML=`<div class="overlay"><div class="modal" style="width:360px">
+    <h3>เลือกสีและราคาขาย</h3>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+      <div>
+        ${p.brand?`<div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">${p.brand}</div>`:''}
+        <div style="font-size:15px;font-weight:600">${p.model}</div>
+        <span class="badge badge-blue" style="margin-top:3px">${p.type}</span>
+      </div>
+    </div>
+    <div class="slabel">สีและสต็อก</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      ${allColors.map(c=>{
+        const sA=parseInt(c.stockA)||0;
+        const sB=parseInt(c.stockB)||0;
+        const s=sA+sB+(parseInt(c.stock)||0);
+        const out=s===0;
+        let stockLabel='';
+        if(out){
+          stockLabel=`<div style="font-size:10px;color:var(--red);font-weight:600">หมด</div>`;
+        } else {
+          const lineA=sA===0
+            ?`<div style="font-size:10px;color:var(--red);font-weight:500">วัดเขา หมด</div>`
+            :`<div style="font-size:10px;color:var(--text3)">วัดเขา ${sA}</div>`;
+          const lineB=sB===0
+            ?`<div style="font-size:10px;color:var(--red);font-weight:500">สนาม หมด</div>`
+            :`<div style="font-size:10px;color:var(--text3)">สนาม ${sB}</div>`;
+          stockLabel=lineA+lineB;
+        }
+        return `<div onclick="${out?'':'selectColorInPicker(this,\''+c.color+'\',\''+colorName(c.color)+'\','+pid+')'}" 
+          style="cursor:${out?'default':'pointer'};border:2px solid transparent;border-radius:10px;padding:8px;text-align:center;transition:border-color .12s;background:${out?'var(--rl)':'var(--surface2)'};opacity:${out?'0.7':'1'}" class="cpick-item">
+          <div style="width:40px;height:40px;border-radius:50%;background:${c.color};border:1px solid ${c.color==='#ffffff'||c.color==='#f5f0e0'?'#ccc':'var(--border)'};margin:0 auto"></div>
+          <div style="font-size:12px;font-weight:500;margin-top:5px;color:${out?'var(--red)':'var(--text)'}">${c.name||colorName(c.color)}</div>
+          ${stockLabel}
+        </div>`;
+      }).join('')}
+    </div>
+    <!-- เลือกสาขา -->
+    <div class="slabel">ตัดสต็อกจากสาขา</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button id="branch-A" onclick="selectBranch('A')"
+        style="flex:1;padding:9px;border-radius:var(--r);border:2px solid var(--green);background:var(--green);color:#fff;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:600;cursor:pointer">
+        📍 วัดเขา
+      </button>
+      <button id="branch-B" onclick="selectBranch('B')"
+        style="flex:1;padding:9px;border-radius:var(--r);border:2px solid var(--border);background:var(--surface);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:13px;font-weight:500;cursor:pointer">
+        📍 สนามกีฬา
+      </button>
+    </div>
+    <div class="slabel">ราคาขายจริง</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:5px">ราคาตั้ง: ฿${Number(p.price).toLocaleString()}</div>
+    <input id="actual-price" type="number" value="${p.price}" style="width:100%" placeholder="ราคาขายจริง (ลดราคาได้)">
+    <div style="font-size:11px;color:var(--text3);margin-top:4px">ราคานี้รวมทุกอย่างแล้ว ไม่มี VAT</div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn" style="flex:1" onclick="closeOv()">ยกเลิก</button>
+      <button class="btn btn-primary" style="flex:1" onclick="addVehToCart(${pid})">+ เพิ่มในตะกร้า</button>
+    </div>
+  </div></div>`;
+}
+
+let posCat='bike';
+function setPosCat(cat){
+  posCat=cat;
+  const bk=document.getElementById('pos-cat-bike');
+  const bt=document.getElementById('pos-cat-battery');
+  if(bk){bk.style.background=cat==='bike'?'var(--green)':'var(--surface)';bk.style.color=cat==='bike'?'#fff':'var(--text2)';}
+  if(bt){bt.style.background=cat==='battery'?'var(--green)':'var(--surface)';bt.style.color=cat==='battery'?'#fff':'var(--text2)';}
+  // filter-type แสดงเฉพาะ bike
+  const ft=document.getElementById('filter-type');
+  if(ft) ft.style.display=cat==='bike'?'':'none';
+  // filter-brand อัปเดต
+  const fb=document.getElementById('filter-brand');
+  if(fb){
+    const opts=(cat==='battery'?brands.filter(b=>b.type==='battery'):brands.filter(b=>b.type!=='battery'))
+      .map(b=>`<option value="${b.name}">${b.name}</option>`).join('');
+    fb.innerHTML='<option value="">ทุกแบรนด์</option>'+opts;
+  }
+  renderPosGrid();
+}
+let selectedColor=null,selectedColorName='',selectedBranch='A';
+
+function selectBranch(b){
+  selectedBranch=b;
+  const bA=document.getElementById('branch-A');
+  const bB=document.getElementById('branch-B');
+  if(bA){bA.style.background=b==='A'?'var(--green)':'var(--surface)';bA.style.color=b==='A'?'#fff':'var(--text2)';bA.style.borderColor=b==='A'?'var(--green)':'var(--border)';}
+  if(bB){bB.style.background=b==='B'?'var(--green)':'var(--surface)';bB.style.color=b==='B'?'#fff':'var(--text2)';bB.style.borderColor=b==='B'?'var(--green)':'var(--border)';}
+}
+
+function toggleDeposit(){
+  const chk=document.getElementById('chk-deposit');
+  const df=document.getElementById('deposit-fields');
+  if(df) df.style.display=chk.checked?'block':'none';
+}
+
+function calcRemaining(pid){
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  const price=parseFloat(document.getElementById('actual-price').value)||p.price;
+  const dep=parseFloat(document.getElementById('deposit-amount').value)||0;
+  const rem=price-dep;
+  const lbl=document.getElementById('remaining-label');
+  if(lbl) lbl.textContent=dep>0?`คงค้าง: ฿${rem.toLocaleString()}`:'';
+}
+
+function selectColorInPicker(el,color,name,pid){
+  selectedColor=color;selectedColorName=name;
+  el.closest('.overlay').querySelectorAll('.cpick-item').forEach(d=>{d.style.borderColor='transparent';d.style.background='var(--surface2)';});
+  el.style.borderColor='var(--green)';el.style.background='var(--gl)';
+  // อัปเดตปุ่มสาขาตามสต็อกของสีที่เลือก
+  const p=products.find(x=>x.id==pid);if(!p)return;
+  const col=p.colors.find(x=>x.color===color);if(!col)return;
+  const sA=parseInt(col.stockA)||0;
+  const sB=parseInt(col.stockB)||0;
+  const bA=document.getElementById('branch-A');
+  const bB=document.getElementById('branch-B');
+  // วัดเขา
+  if(bA){
+    const outA=sA===0;
+    bA.disabled=outA;
+    bA.style.opacity=outA?'0.4':'1';
+    bA.style.cursor=outA?'not-allowed':'pointer';
+    bA.innerHTML=outA?'📍 วัดเขา<br><span style="font-size:10px;font-weight:400">หมด</span>':'📍 วัดเขา<br><span style="font-size:10px;font-weight:400">เหลือ '+sA+'</span>';
+    // ถ้าที่เลือกอยู่หมด ให้เปลี่ยนไปอีกสาขา
+    if(outA&&selectedBranch==='A'&&sB>0) selectBranch('B');
+    else if(!outA&&selectedBranch==='A') selectBranch('A');
+  }
+  // สนามกีฬา
+  if(bB){
+    const outB=sB===0;
+    bB.disabled=outB;
+    bB.style.opacity=outB?'0.4':'1';
+    bB.style.cursor=outB?'not-allowed':'pointer';
+    bB.innerHTML=outB?'📍 สนามกีฬา<br><span style="font-size:10px;font-weight:400">หมด</span>':'📍 สนามกีฬา<br><span style="font-size:10px;font-weight:400">เหลือ '+sB+'</span>';
+    if(outB&&selectedBranch==='B'&&sA>0) selectBranch('A');
+  }
+}
+
+function addVehToCart(pid){
+  if(!selectedColor){alert('กรุณาเลือกสีก่อน');return;}
+  const p=products.find(x=>x.id==pid);
+  const price=parseFloat(document.getElementById('actual-price').value)||p.price;
+  const chkDep=document.getElementById('chk-deposit');
+  const isDeposit=chkDep&&chkDep.checked;
+  const depAmount=isDeposit?(parseFloat(document.getElementById('deposit-amount').value)||0):0;
+  const key=`${pid}__${selectedColor}`;
+  const item={pid,color:selectedColor,colorName:selectedColorName,price,name:`${p.brand?p.brand+' ':''}${p.model}`,type:p.type,qty:1,branch:selectedBranch};
+  if(isDeposit&&depAmount>0){item.deposit=depAmount;item.remaining=price-depAmount;item.isDeposit=true;}
+  if(cart[key]){cart[key].qty++;}
+  else{cart[key]=item;}
+  selectedColor=null;selectedColorName='';selectedBranch='A';
+  closeOv();renderCart();updateCartFab();
+  if(window.innerWidth<=1024){
+    const fab=document.getElementById('cart-fab');
+    if(fab)fab.style.display='flex';
+  }
+}
+
+function removeCartItem(key){delete cart[key];renderCart();updateCartFab();}
+
+function renderCart(){
+  const items=Object.entries(cart);
+  const el=document.getElementById('cart-items');
+  if(!items.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:14px;text-align:center">ยังไม่มีสินค้า</div>';
+    document.getElementById('cart-footer').innerHTML='';return;
+  }
+  el.innerHTML=items.map(([key,v])=>`
+    <div class="cart-item">
+      <div style="width:36px;height:36px;border-radius:6px;overflow:hidden;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">
+        ${v.image?`<img src="${v.image}" style="width:100%;height:100%;object-fit:cover">`:'📦'}
+      </div>
+      <div class="ci-name">
+        <div style="font-weight:500;font-size:12px">${v.name}</div>
+        <div style="display:flex;align-items:center;gap:3px;margin-top:2px">
+          <div style="width:9px;height:9px;border-radius:50%;background:${v.color};border:1px solid var(--border);flex-shrink:0"></div>
+          <span style="font-size:10px;color:var(--text2)">${v.colorName||v.color}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:3px">
+        <button class="qty-btn" onclick="chQty('${key}',-1)">−</button>
+        <span style="font-size:11px;min-width:12px;text-align:center">${v.qty}</span>
+        <button class="qty-btn" onclick="chQty('${key}',1)">+</button>
+      </div>
+      <div class="ci-price">฿${(v.price*v.qty).toLocaleString()}</div>
+      <button class="qty-btn" onclick="removeCartItem('${key}')" title="ลบ" style="margin-left:1px;color:var(--red)">✕</button>
+    </div>`).join('');
+  const total=items.reduce((s,[,v])=>s+v.price*v.qty,0);
+  document.getElementById('cart-footer').innerHTML=`
+    <div class="trow big"><span>ยอดชำระ</span><span>฿${total.toLocaleString()}</span></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:2px">ราคารวมทุกอย่างแล้ว ไม่มี VAT</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px">
+      <button class="pay-btn" style="margin-top:0;background:var(--green)" onclick="checkout('sale')">💳 ชำระเงิน</button>
+      <button class="pay-btn" style="margin-top:0;background:var(--yellow);color:#92600a" onclick="checkout('deposit')">💰 มัดจำ</button>
+    </div>`;
+}
+
+function chQty(key,d){if(cart[key]){cart[key].qty=Math.max(1,cart[key].qty+d);}renderCart();updateCartFab();}
+
+// ── Checkout ──
+function checkout(mode='sale'){
+  const items=Object.entries(cart);if(!items.length)return;
+  const total=items.reduce((s,[,v])=>s+v.price*v.qty,0);
+  const custOpts=customers.map(cx=>`<option value="${cx.name}">`).join('');
+  const isDeposit=mode==='deposit';
+  document.getElementById('ov').innerHTML=`<div class="overlay" data-no-close="1"><div class="modal" style="width:360px" onclick="event.stopPropagation()">
+    <h3>${isDeposit?'💰 บันทึกมัดจำ':'💳 ยืนยันการชำระเงิน'}</h3>
+    <div style="font-size:14px;font-weight:600;color:${isDeposit?'#92600a':'var(--green)'};margin-bottom:12px;background:${isDeposit?'var(--yl)':'var(--gl)'};padding:8px 12px;border-radius:8px">
+      ราคาเต็ม ฿${total.toLocaleString()}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label class="form-label">ลูกค้า *</label>
+        <input id="co-cust" list="co-cust-list" placeholder="พิมพ์ชื่อลูกค้า" style="width:100%" oninput="onCoCustInput(this.value)">
+        <datalist id="co-cust-list">${custOpts}</datalist>
+      </div>
+      <div>
+        <label class="form-label">เบอร์โทร</label>
+        <div id="co-phone-suggestions" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px"></div>
+        <input id="co-phone" placeholder="เบอร์โทร" style="width:100%">
+      </div>
+      <!-- ที่อยู่จัดส่ง -->
+      <div>
+        <label class="form-label">ที่อยู่จัดส่ง (ถ้ามี)</label>
+        <textarea id="co-addr" placeholder="บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด..." style="width:100%;min-height:52px"></textarea>
+        <input id="co-maplink" placeholder="ลิงก์ Google Maps (วางได้เลย)" style="width:100%;margin-top:5px;font-size:12px">
+      </div>
+      ${isDeposit?`
+      <div style="background:var(--yl);border-radius:8px;padding:10px 12px">
+        <label class="form-label" style="color:#92600a">ราคาที่ตกลงขาย (฿) *</label>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:5px">ใส่ราคาจริงที่ตกลงกัน (อาจต่างจากราคาตั้ง)</div>
+        <input id="co-agreed-price" type="number" placeholder="฿${total}" value="${total}" style="width:100%;font-size:16px;font-weight:600" oninput="calcDepositRemain()">
+        <label class="form-label" style="margin-top:10px;color:#92600a">เงินมัดจำที่รับ (฿) *</label>
+        <input id="co-deposit" type="number" placeholder="0" style="width:100%;font-size:16px;font-weight:600" oninput="calcDepositRemain()">
+        <div id="co-remain-label" style="font-size:13px;color:var(--red);font-weight:600;margin-top:6px;text-align:center"></div>
+      </div>`:''}
+      <!-- วิธีชำระเงิน -->
+      <div>
+        <label class="form-label">วิธีชำระเงิน</label>
+        <input type="hidden" id="co-paymethod" value="cash">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" id="pm-cash" onclick="selectPayMethod('cash')"
+            style="flex:1;min-width:90px;padding:9px;border-radius:var(--r);border:2px solid var(--green);background:var(--green);color:#fff;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:600;cursor:pointer">💵 เงินสด</button>
+          <button type="button" id="pm-bank" onclick="selectPayMethod('bank')"
+            style="flex:1;min-width:90px;padding:9px;border-radius:var(--r);border:2px solid var(--border);background:var(--surface);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:13px;font-weight:500;cursor:pointer">🏦 ธนาคาร</button>
+          ${isDeposit?'':`<button type="button" id="pm-card" onclick="selectPayMethod('card')"
+            style="flex:1;min-width:90px;padding:9px;border-radius:var(--r);border:2px solid var(--border);background:var(--surface);color:var(--text2);font-family:'Sarabun',sans-serif;font-size:13px;font-weight:500;cursor:pointer">💳 บัตร +3%</button>`}
+        </div>
+        <div id="co-fee-label" style="display:none;font-size:13px;font-weight:600;color:var(--orange);margin-top:8px;background:var(--ol);padding:8px 10px;border-radius:8px"></div>
+      </div>
+    </div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn" style="flex:1" onclick="closeOv()">ยกเลิก</button>
+      <button class="btn ${isDeposit?'btn-orange':'btn-primary'}" style="flex:1" onclick="doCheckout('${mode}')">
+        ${isDeposit?'💰 บันทึกมัดจำ':'✓ ชำระเงิน'}
+      </button>
+    </div>
+  </div></div>`;
+  coTotal=total;
+  setTimeout(()=>{const el=document.getElementById('co-cust');if(el)el.focus();},100);
+}
+
+let coTotal=0; // เก็บยอดเต็มไว้คำนวณค่าธรรมเนียม
+function selectPayMethod(m){
+  document.getElementById('co-paymethod').value=m;
+  ['cash','bank','card'].forEach(x=>{
+    const b=document.getElementById('pm-'+x);
+    if(!b)return;
+    const active=x===m;
+    b.style.background=active?'var(--green)':'var(--surface)';
+    b.style.color=active?'#fff':'var(--text2)';
+    b.style.borderColor=active?'var(--green)':'var(--border)';
+    b.style.fontWeight=active?'600':'500';
+  });
+  const feeLabel=document.getElementById('co-fee-label');
+  if(m==='card'){
+    // คำนวณ 3% จากยอดที่ตกลง (หรือยอดเต็ม)
+    const agreedEl=document.getElementById('co-agreed-price');
+    const base=agreedEl?(parseFloat(agreedEl.value)||coTotal):coTotal;
+    const fee=Math.round(base*0.03);
+    const totalWithFee=base+fee;
+    if(feeLabel){
+      feeLabel.style.display='block';
+      feeLabel.innerHTML=`ค่าธรรมเนียมบัตร 3% = ฿${fee.toLocaleString()}<br>ยอดที่ต้องชำระ = <span style="font-size:15px">฿${totalWithFee.toLocaleString()}</span>`;
+    }
+  } else {
+    if(feeLabel) feeLabel.style.display='none';
+  }
+}
+
+function calcDepositRemain(){
+  const agreed=parseFloat(document.getElementById('co-agreed-price').value)||0;
+  const dep=parseFloat(document.getElementById('co-deposit').value)||0;
+  const lbl=document.getElementById('co-remain-label');
+  if(lbl&&dep>0) lbl.textContent=`คงค้าง: ฿${(agreed-dep).toLocaleString()}`;
+  else if(lbl) lbl.textContent='';
+  // อัปเดตค่าธรรมเนียมบัตรถ้าเลือกบัตรอยู่
+  const pm=document.getElementById('co-paymethod');
+  if(pm&&pm.value==='card') selectPayMethod('card');
+}
+
+function onCoCustInput(name){
+  const c=customers.find(x=>x.name===name);
+  const sug=document.getElementById('co-phone-suggestions');
+  const phoneEl=document.getElementById('co-phone');
+  if(!c){if(sug)sug.innerHTML='';return;}
+  const phones=[...new Set([fmtPhone(c.phone)].filter(p=>p&&p!=='-'))];
+  if(sug){
+    sug.innerHTML=phones.map(p=>`<button class="btn btn-sm" style="background:var(--bl);color:var(--blue);border-color:#a8c8f0"
+      onclick="document.getElementById('co-phone').value='${p}'">${p}</button>`).join('');
+  }
+  if(phones.length===1&&phoneEl&&!phoneEl.value) phoneEl.value=phones[0];
+}
+
+async function doCheckout(mode='sale'){
+  const items=Object.entries(cart);if(!items.length)return;
+  const cartTotal=items.reduce((s,[,v])=>s+v.price*v.qty,0);
+  const custName=(document.getElementById('co-cust').value||'').trim()||'ลูกค้าทั่วไป';
+  const custPhone=(document.getElementById('co-phone').value||'').trim();
+  const isDeposit=mode==='deposit';
+  // ราคาที่ตกลงและมัดจำ (เฉพาะ deposit mode)
+  const agreedPrice=isDeposit?(parseFloat(document.getElementById('co-agreed-price').value)||cartTotal):cartTotal;
+  const depositAmount=isDeposit?(parseFloat(document.getElementById('co-deposit').value)||0):0;
+  if(isDeposit&&(!custName||custName==='ลูกค้าทั่วไป')){alert('กรุณากรอกชื่อลูกค้า');return;}
+  if(isDeposit&&depositAmount<=0){alert('กรุณากรอกเงินมัดจำ');return;}
+  const remaining=isDeposit?(agreedPrice-depositAmount):0;
+  const payMethod=document.getElementById('co-paymethod')?document.getElementById('co-paymethod').value:'cash';
+  // ค่าธรรมเนียมบัตร 3% (เฉพาะการขายที่จ่ายด้วยบัตร)
+  const cardFee=(!isDeposit&&payMethod==='card')?Math.round(agreedPrice*0.03):0;
+  const finalTotal=agreedPrice+cardFee;
+  const payLabel={cash:'เงินสด',bank:'ธนาคาร',card:'บัตรเครดิต'}[payMethod]||'เงินสด';
+  const rcId='RC'+String(nextRcId++).padStart(3,'0');
+  const now=todayCE();
+  const coAddr=(document.getElementById('co-addr')?document.getElementById('co-addr').value.trim():'');
+  const coMaplink=(document.getElementById('co-maplink')?document.getElementById('co-maplink').value.trim():'');
+  const saleItems=items.map(([,v])=>({name:v.name,color:v.color,colorName:v.colorName||colorName(v.color),type:v.type,qty:v.qty,price:v.price,branch:v.branch||'A'}));
+  const status=isDeposit?'มัดจำ':(coAddr?'ระหว่างขนส่ง':'รอดำเนินการ');
+  const sale={id:rcId,customer:custName,date:now,total:finalTotal,items:saleItems,status,deposit:depositAmount,remaining,agreedPrice,addr:coAddr||'-',maplink:coMaplink||'-',payMethod:payLabel,cardFee};
+  sales.unshift(sale);
+  const stockUpdates=[];
+  items.forEach(([key,v])=>{
+    const p=products.find(x=>x.id==v.pid);if(!p)return;
+    const col=p.colors.find(x=>x.color===v.color);if(!col)return;
+    if(v.branch==='B'){col.stockB=Math.max(0,(parseInt(col.stockB)||0)-v.qty);}
+    else{col.stockA=Math.max(0,(parseInt(col.stockA)||0)-v.qty);}
+    col.sold=(parseInt(col.sold)||0)+v.qty;
+    if(!stockUpdates.find(x=>x.id==p.id))stockUpdates.push(p);
+  });
+  let cust=customers.find(cx=>cx.name===custName);
+  const ps=[api.save('sales',{...sale,items:JSON.stringify(sale.items)})];
+  if(custName!=='ลูกค้าทั่วไป'){
+    if(!cust){
+      cust={id:Date.now(),name:custName,phone:custPhone||'-',total:isDeposit?depositAmount:agreedPrice,repairCount:0,lastVisit:now};
+      customers.push(cust);ps.push(api.save('customers',cust));
+    } else {
+      cust.total=Number(cust.total||0)+(isDeposit?depositAmount:agreedPrice);cust.lastVisit=now;
+      if(custPhone)cust.phone=custPhone;
+      ps.push(api.upd('customers',cust.id,cust));
+    }
+  }
+  stockUpdates.forEach(p=>ps.push(api.upd('products',p.id,{...p,colors:JSON.stringify(p.colors)})));
+  closeOv();
+  showReceipt(sale);
+  cart={};renderCart();updateCustList();
+  showSync('saving','💾 กำลังบันทึก...');
+  try{await Promise.all(ps);showSync('ok','✅ บันทึกใน Google Sheets แล้ว');saveCache();}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  renderPosGrid();renderStockList();
+}
+
+// ── ชำระคงค้าง ──
+async function payRemaining(saleId){
+  const s=sales.find(x=>String(x.id)===String(saleId));if(!s)return;
+  const paidDate=todayCE();
+  s.status='ชำระแล้ว';
+  s.paidDate=paidDate;
+  s.total=s.total; // ยอดรวมเดิม
+  showSync('saving','💾 บันทึกชำระ...');
+  try{
+    await api.upd('sales',saleId,{...s,items:JSON.stringify(s.items)});
+    showSync('ok','✅ ชำระครบแล้ว');saveCache();
+  }catch{showSync('err','❌ ไม่สำเร็จ');}
+  closeOv();renderHistory();
+}
+
+function showReceipt(s){
+  const items=Array.isArray(s.items)?s.items:[];
+  let html=`<div class="overlay"><div class="rbox">
+    <h3>🧾 ใบเสร็จรับเงิน</h3>
+    <div class="rsub">เลขที่: <strong>${s.id}</strong><br>วันที่: ${s.date}<br>ลูกค้า: ${s.customer}</div>
+    <hr class="rdiv">`;
+  html+=items.map(i=>`<div class="rrow">
+    <span style="display:flex;align-items:center;gap:4px">
+      <span style="width:9px;height:9px;border-radius:50%;background:${i.color};border:1px solid var(--border);display:inline-block;flex-shrink:0"></span>
+      ${i.name} ×${i.qty}
+    </span>
+    <span>฿${(i.price*i.qty).toLocaleString()}</span>
+  </div>`).join('');
+  html+=`<hr class="rdiv">
+    <div class="rrow" style="font-weight:600;font-size:14px"><span>ยอดชำระ</span><span style="color:var(--green)">฿${Number(s.total).toLocaleString()}</span></div>
+    <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:4px">ราคารวมทุกอย่างแล้ว ไม่มี VAT</div>
+    <div class="modal-btns">
+      <button class="btn" style="flex:1" onclick="window.print()">🖨 พิมพ์</button>
+      <button class="btn btn-primary" style="flex:1" onclick="closeOv()">✓ เสร็จ</button>
+    </div>
+  </div></div>`;
+  document.getElementById('ov').innerHTML=html;
+}
+
+// ── History ──
+function renderRepairHistory(){
+  const q=(document.getElementById('hist-search').value||'').toLowerCase();
+  const filtered=repairs.filter(r=>(r.id||'').toLowerCase().includes(q)||(r.customer||'').toLowerCase().includes(q)||(r.device||'').toLowerCase().includes(q));
+  const totalRepair=repairs.reduce((s,x)=>s+Number(x.price||0),0);
+  const doneCount=repairs.filter(r=>r.status==='ส่งคืนแล้ว').length;
+  const activeCount=repairs.filter(r=>r.status!=='ส่งคืนแล้ว'&&r.status!=='ยกเลิก').length;
+  document.getElementById('summary-cards').innerHTML=`
+    <div class="scard"><div class="sc-l">รายได้ซ่อม</div><div class="sc-v" style="color:var(--orange)">฿${totalRepair.toLocaleString()}</div></div>
+    <div class="scard"><div class="sc-l">งานทั้งหมด</div><div class="sc-v">${repairs.length}</div></div>
+    <div class="scard"><div class="sc-l">กำลังซ่อม</div><div class="sc-v" style="color:var(--blue)">${activeCount}</div></div>
+    <div class="scard"><div class="sc-l">ส่งคืนแล้ว</div><div class="sc-v" style="color:var(--green)">${doneCount}</div></div>`;
+  if(!filtered.length){
+    document.getElementById('history-tbody').innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:16px">ไม่พบงานซ่อม</td></tr>';
+    return;
+  }
+  const groups={};
+  filtered.forEach(r=>{const d=fmtDate(r.created||r.dateIn)||'ไม่ระบุ';if(!groups[d])groups[d]=[];groups[d].push(r);});
+  let html='';
+  Object.keys(groups).forEach(date=>{
+    const list=groups[date];
+    html+=`<tr><td colspan="6" style="background:var(--surface2);padding:8px 10px;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px;font-weight:600;color:var(--orange)">📅 ${date}</span>
+      <span style="font-size:12px;color:var(--text2);margin-left:8px">${list.length} งาน</span>
+    </td></tr>`;
+    list.forEach(r=>{
+      html+=`<tr style="cursor:pointer" onclick="viewRepair('${r.id}')">
+        <td><strong>${r.id}</strong></td>
+        <td>${r.customer}<div style="font-size:11px;color:var(--text3)">${r.device||''}</div></td>
+        <td style="color:var(--text3);font-size:12px">${fmtDateTime(r.dateIn)}</td>
+        <td>${r.price>0?'฿'+Number(r.price).toLocaleString():'-'}</td>
+        <td><span class="badge ${RBADGE[r.status]||''}" style="font-size:10px">${r.status}</span></td>
+        <td><button class="btn btn-sm" onclick="event.stopPropagation();viewRepair('${r.id}')">ดู</button></td>
+      </tr>`;
+    });
+  });
+  document.getElementById('history-tbody').innerHTML=html;
+}
+
+let histCat='sale'; // 'sale' | 'repair'
+function setHistCat(t){
+  histCat=t;
+  const bs=document.getElementById('hist-cat-sale');
+  const br=document.getElementById('hist-cat-repair');
+  if(bs){bs.style.background=t==='sale'?'var(--green)':'var(--surface)';bs.style.color=t==='sale'?'#fff':'var(--text2)';}
+  if(br){br.style.background=t==='repair'?'var(--orange)':'var(--surface)';br.style.color=t==='repair'?'#fff':'var(--text2)';}
+  renderHistory();
+}
+
+function renderHistory(){
+  if(histCat==='repair'){renderRepairHistory();return;}
+  const q=(document.getElementById('hist-search').value||'').toLowerCase();
+  const filtered=sales.filter(s=>(s.id||'').toLowerCase().includes(q)||(s.customer||'').toLowerCase().includes(q));
+  const totalRev=sales.filter(s=>s.status!=='มัดจำ').reduce((s,x)=>s+Number(x.total||0),0);
+  const depositCount=sales.filter(s=>s.status==='มัดจำ').length;
+  const repairRev=repairs.filter(r=>r.status==='ส่งคืนแล้ว'||r.status==='ซ่อมเสร็จ').reduce((s,x)=>s+Number(x.price||0),0);
+  document.getElementById('summary-cards').innerHTML=`
+    <div class="scard"><div class="sc-l">รายได้ขาย</div><div class="sc-v" style="color:var(--green)">฿${totalRev.toLocaleString()}</div></div>
+    <div class="scard"><div class="sc-l">รายได้ซ่อม</div><div class="sc-v" style="color:var(--orange)">฿${repairRev.toLocaleString()}</div></div>
+    <div class="scard"><div class="sc-l">ใบเสร็จ</div><div class="sc-v">${sales.filter(s=>s.status!=='มัดจำ').length}</div></div>
+    <div class="scard"><div class="sc-l">💰 มัดจำค้างอยู่</div><div class="sc-v" style="color:var(--yellow)">${depositCount}</div></div>`;
+
+  if(!filtered.length){
+    document.getElementById('history-tbody').innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:16px">ไม่พบข้อมูล</td></tr>';
+    return;
+  }
+
+  const groups={};
+  filtered.forEach(s=>{
+    const d=s.date||'ไม่ระบุวันที่';
+    if(!groups[d]) groups[d]=[];
+    groups[d].push(s);
+  });
+
+  const sortedDates=Object.keys(groups).sort((a,b)=>{
+    const pa=a.split(/[\/\-]/).map(Number);
+    const pb=b.split(/[\/\-]/).map(Number);
+    try{
+      const ya=pa[2]>2400?pa[2]-543:pa[2];
+      const yb=pb[2]>2400?pb[2]-543:pb[2];
+      const da=a.includes('/')?new Date(ya,pa[1]-1,pa[0]):new Date(a);
+      const db=b.includes('/')?new Date(yb,pb[1]-1,pb[0]):new Date(b);
+      return db-da;
+    }catch(e){return b>a?1:-1;}
+  });
+
+  let html='';
+  sortedDates.forEach(date=>{
+    const daySales=groups[date];
+    const dayTotal=daySales.reduce((s,x)=>s+Number(x.total||0),0);
+    let dateLabel=date;
+    try{
+      let d;
+      if(date.includes('/')){
+        const parts=date.split('/').map(Number);
+        let yr=parts[2]>2400?parts[2]-543:parts[2];
+        d=new Date(yr,parts[1]-1,parts[0]);
+      } else {
+        const m=date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if(m){
+          let yr=Number(m[1]);if(yr>2400)yr-=543;
+          d=new Date(yr,Number(m[2])-1,Number(m[3]));
+        } else d=new Date(date);
+      }
+      if(!isNaN(d.getTime())){
+        const wd=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][d.getDay()];
+        dateLabel=`วัน${wd}ที่ ${d.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'})}`;
+      }
+    }catch(e){}
+
+    html+=`<tr>
+      <td colspan="6" style="background:var(--gl);padding:8px 10px;border-bottom:2px solid var(--green)">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:13px;font-weight:700;color:var(--gm)">📅 ${dateLabel}</span>
+          <span style="font-size:12px;color:var(--gm)">${daySales.length} รายการ · รวม <strong>฿${dayTotal.toLocaleString()}</strong></span>
+        </div>
+      </td>
+    </tr>`;
+
+    daySales.forEach(s=>{
+      const isDeposit=s.status==='มัดจำ';
+      if(isDeposit){
+        const items=Array.isArray(s.items)?s.items:[];
+        const itemDesc=items.map(i=>`${i.name}${i.color?` (${colorName(i.color)})`:''}${i.branch?` · ${i.branch==='A'?'วัดเขา':'สนาม'}`:''}`).join(', ');
+        html+=`<tr style="background:#fef9ed;cursor:pointer" data-sid="${s.id}" class="dep-row">
+          <td colspan="6" style="padding:10px 12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+                  <span style="font-size:12px;font-weight:700;color:#92600a">💰 มัดจำ</span>
+                  <span style="font-size:12px;font-weight:600">${s.customer}</span>
+                  <span style="font-size:11px;color:var(--text3)">${s.id}</span>
+                </div>
+                <div style="font-size:12px;color:var(--text2);margin-bottom:2px">${itemDesc}</div>
+                <div style="font-size:12px">
+                  มัดจำ <strong style="color:var(--green)">฿${Number(s.deposit||0).toLocaleString()}</strong>
+                  &nbsp;·&nbsp; คงค้าง <strong style="color:var(--red)">฿${Number(s.remaining||0).toLocaleString()}</strong>
+                </div>
+              </div>
+              <button class="btn btn-sm" style="background:var(--yl);color:#92600a;border-color:#f0d88a;flex-shrink:0" onclick="event.stopPropagation();viewDepositSale('${s.id}')">ดู</button>
+            </div>
+          </td>
+        </tr>`;
+      } else if(s.status==='ระหว่างขนส่ง'){
+        const items=Array.isArray(s.items)?s.items:[];
+        const itemDesc=items.map(i=>`${i.name}${i.color?` (${colorName(i.color)})`:''}${i.branch?` · ${i.branch==='A'?'วัดเขา':'สนาม'}`:''}`).join(', ');
+        const hasAddr=s.addr&&s.addr!=='-';
+        const hasMap=s.maplink&&s.maplink!=='-';
+        html+=`<tr style="background:#e8f0fb;cursor:pointer" onclick="viewSale('${s.id}')">
+          <td colspan="6" style="padding:10px 12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+                  <span style="font-size:12px;font-weight:700;color:var(--blue)">🚚 ระหว่างขนส่ง</span>
+                  <span style="font-size:12px;font-weight:600">${s.customer}</span>
+                  <span style="font-size:11px;color:var(--text3)">${s.id}</span>
+                </div>
+                <div style="font-size:12px;color:var(--text2);margin-bottom:2px">${itemDesc}</div>
+                ${hasAddr?`<div style="font-size:11px;color:var(--text3)">📍 ${s.addr}</div>`:''}
+                <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+                  ${hasMap?`<a href="${s.maplink}" target="_blank" style="font-size:12px;color:var(--blue)" onclick="event.stopPropagation()">🗺 แผนที่</a>`:''}
+                  <button class="btn btn-sm" style="background:var(--bl);color:var(--blue);border-color:#a8c8f0;font-size:11px"
+                    onclick="event.stopPropagation();copySaleAddr('${s.id}')">📋 คัดลอกที่อยู่</button>
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-size:13px;font-weight:600">฿${Number(s.total||0).toLocaleString()}</div>
+                <button class="btn btn-sm btn-primary" style="margin-top:4px;font-size:11px" onclick="event.stopPropagation();viewSale('${s.id}')">ดู</button>
+              </div>
+            </div>
+          </td>
+        </tr>`;
+      } else {
+        const isPending=s.status==='รอดำเนินการ';
+        const badgeClass=isPending?'badge-orange':'badge-green';
+        html+=`<tr style="${isPending?'background:var(--ol)':''}">
+          <td><strong>${s.id}</strong></td>
+          <td>${s.customer}</td>
+          <td style="color:var(--text3);font-size:12px">${s.date}</td>
+          <td>฿${Number(s.total||0).toLocaleString()}</td>
+          <td><span class="badge ${badgeClass}">${s.status}</span></td>
+          <td style="display:flex;gap:4px;flex-wrap:wrap">
+            <button class="btn btn-sm" onclick="viewSale('${s.id}')">ดู</button>
+            ${isPending?`<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="markSalePaid('${s.id}')">✅ ชำระแล้ว</button>`:''}
+            <button class="btn btn-danger btn-sm" onclick="confirmDeleteSale('${s.id}')">ลบ</button>
+          </td>
+        </tr>`;
+      }
+    });
+  });
+  document.getElementById('history-tbody').innerHTML=html;
+  document.querySelectorAll('.dep-row').forEach(row=>{
+    row.addEventListener('click',()=>viewDepositSale(row.dataset.sid));
+  });
+}
+
+function viewDepositSale(id){
+  const s=sales.find(x=>String(x.id)===String(id));if(!s)return;
+  const items=Array.isArray(s.items)?s.items:[];
+  const hasAddr=s.addr&&s.addr!=='-';
+  const hasMap=s.maplink&&s.maplink!=='-';
+  const itemRows=items.map(i=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div style="width:16px;height:16px;border-radius:50%;background:${i.color||'#888'};border:1px solid rgba(0,0,0,.15);flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600">${i.name}</div>
+        <div style="font-size:11px;color:var(--text3)">${i.color?colorName(i.color):''} ${i.branch?'· '+(i.branch==='A'?'วัดเขา':'สนามกีฬา'):''}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:13px;font-weight:600">฿${Number(i.price||0).toLocaleString()}</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('ov').innerHTML=`<div class="overlay"><div class="modal" style="width:380px;max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3>💰 รายการมัดจำ ${s.id}</h3>
+      <button onclick="closeOv()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">✕</button>
+    </div>
+    <div style="background:var(--yl);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;color:#92600a;font-weight:600;margin-bottom:6px">ข้อมูลลูกค้า</div>
+      <div style="font-size:14px;font-weight:600">${s.customer}</div>
+      ${(()=>{const cust=customers.find(x=>x.name===s.customer);return cust&&cust.phone&&cust.phone!=='-'?`<div style="font-size:12px;color:var(--text2);margin-top:2px">📞 ${fmtPhone(cust.phone)}</div>`:''})()}
+      <div style="font-size:12px;color:var(--text2);margin-top:2px">วันมัดจำ: ${fmtDate(s.date)}</div>
+      ${s.paidDate?`<div style="font-size:12px;color:var(--green);margin-top:2px">ชำระครบ: ${s.paidDate}</div>`:''}
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
+        <div>
+          <div style="font-size:10px;color:#92600a;font-weight:600;margin-bottom:2px">📍 ที่อยู่</div>
+          <textarea id="dep-addr-${s.id}" style="width:100%;font-size:12px;min-height:48px;border-radius:6px;border:1px solid #f0d88a;padding:5px 7px">${hasAddr?s.addr:''}</textarea>
+        </div>
+        <div>
+          <div style="font-size:10px;color:#92600a;font-weight:600;margin-bottom:2px">🗺 ลิงก์แผนที่</div>
+          <input id="dep-map-${s.id}" type="url" value="${hasMap?s.maplink:''}" placeholder="https://maps.google.com/..." style="width:100%;font-size:11px;border-radius:6px;border:1px solid #f0d88a;padding:5px 7px">
+        </div>
+        ${hasMap?`<a href="${s.maplink}" target="_blank" style="font-size:12px;color:var(--blue)">🗺 เปิด Google Maps</a>`:''}
+      </div>
+      <div style="display:flex;gap:6px;margin-top:7px">
+        <button class="btn btn-sm" style="background:var(--bl);color:var(--blue);border-color:#a8c8f0;font-size:11px;flex:1" onclick="saveDepositAddr('${s.id}')">💾 บันทึกที่อยู่</button>
+        <button class="btn btn-sm" style="background:var(--bl);color:var(--blue);border-color:#a8c8f0;font-size:11px;flex:1" onclick="copyDepositCustomer('${s.id}')">📋 คัดลอกชื่อ เบอร์ ที่อยู่ ลิงก์</button>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">${itemRows}</div>
+    <div style="background:var(--surface2);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;justify-content:space-between;font-size:13px">
+        <span style="color:var(--text2)">ราคาเต็ม</span>
+        <span style="font-weight:600">฿${Number(s.total||0).toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px">
+        <span style="color:var(--text2)">มัดจำแล้ว</span>
+        <span style="font-weight:600;color:var(--green)">฿${Number(s.deposit||0).toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;padding-top:6px;border-top:1px solid var(--border)">
+        <span style="color:var(--red)">คงค้าง</span>
+        <span style="color:var(--red)">฿${Number(s.remaining||0).toLocaleString()}</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:12px;padding:12px;font-size:15px;font-weight:600"
+      onclick="requirePin('ยืนยันชำระเงินคงค้าง',()=>payRemaining('${s.id}'))">
+      ✅ ชำระเงินคงค้างครบแล้ว ฿${Number(s.remaining||0).toLocaleString()}
+    </button>
+    <button class="btn btn-danger btn-sm" style="width:100%;margin-top:6px" onclick="confirmDeleteSale('${s.id}')">🗑 ลบรายการ</button>
+  </div></div>`;
+}
+
+function copyDepositCustomer(id){
+  const s=sales.find(x=>x.id===id);if(!s)return;
+  const cust=customers.find(x=>x.name===s.customer);
+  const phone=cust&&cust.phone&&cust.phone!=='-'?cust.phone:'';
+  const addrEl=document.getElementById('dep-addr-'+id);
+  const mapEl=document.getElementById('dep-map-'+id);
+  const addr=addrEl?addrEl.value.trim():(s.addr&&s.addr!=='-'?s.addr:'');
+  const maplink=mapEl?mapEl.value.trim():(s.maplink&&s.maplink!=='-'?s.maplink:'');
+  // รายการสินค้า
+  const items=Array.isArray(s.items)?s.items:[];
+  const itemLines=items.map(i=>{
+    const cn=i.colorName||(i.color?colorName(i.color):'');
+    return `- ${i.name}${cn?' สี'+cn:''}${i.qty>1?' x'+i.qty:''}`;
+  });
+  const lines=[
+    s.customer&&`ชื่อ: ${s.customer}`,
+    phone&&`โทร: ${fmtPhone(phone)}`,
+    itemLines.length&&`รายการ:\n${itemLines.join('\n')}`,
+    addr&&`ที่อยู่: ${addr}`,
+    maplink&&`แผนที่: ${maplink}`
+  ].filter(Boolean).join('\n');
+  if(!lines){showSync('err','ไม่มีข้อมูลที่จะคัดลอก');return;}
+  navigator.clipboard.writeText(lines).then(()=>showSync('ok','✅ คัดลอกแล้ว!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=lines;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+    showSync('ok','✅ คัดลอกแล้ว!');
+  });
+}
+
+async function saveDepositAddr(id){
+  const s=sales.find(x=>x.id===id);if(!s)return;
+  const addrEl=document.getElementById('dep-addr-'+id);
+  const mapEl=document.getElementById('dep-map-'+id);
+  if(addrEl) s.addr=addrEl.value.trim()||'-';
+  if(mapEl) s.maplink=mapEl.value.trim()||'-';
+  showSync('saving','💾 บันทึก...');
+  try{await api.upd('sales',id,{...s,items:JSON.stringify(s.items)});showSync('ok','✅ บันทึกแล้ว');saveCache();}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+}
+
+function copySaleAddr(id){
+  const s=sales.find(x=>x.id===id);if(!s)return;
+  const cust=customers.find(x=>x.name===s.customer);
+  const phone=cust&&cust.phone&&cust.phone!=='-'?fmtPhone(cust.phone):'';
+  const items=Array.isArray(s.items)?s.items:[];
+  const itemLines=items.map(i=>{
+    const cn=i.colorName||(i.color?colorName(i.color):'');
+    return `- ${i.name}${cn?' สี'+cn:''}${i.qty>1?' x'+i.qty:''}`;
+  });
+  const lines=[
+    s.customer&&`ชื่อ: ${s.customer}`,
+    phone&&`โทร: ${phone}`,
+    itemLines.length&&`รายการ:\n${itemLines.join('\n')}`,
+    s.addr&&s.addr!=='-'&&`ที่อยู่: ${s.addr}`,
+    s.maplink&&s.maplink!=='-'&&`แผนที่: ${s.maplink}`
+  ].filter(Boolean).join('\n');
+  if(!lines){showSync('err','ไม่มีข้อมูลที่จะคัดลอก');return;}
+  navigator.clipboard.writeText(lines).then(()=>showSync('ok','✅ คัดลอกแล้ว!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=lines;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+    showSync('ok','✅ คัดลอกแล้ว!');
+  });
+}
+
+function confirmDeleteSale(id){
+  requirePin('ลบประวัติการขาย '+id, async()=>{
+    sales=sales.filter(x=>x.id!==id);
+    showSync('saving','💾 กำลังลบ...');
+    try{await api.del('sales',id);showSync('ok','✅ ลบแล้ว');}catch{showSync('err','❌ ไม่สำเร็จ');}
+    renderHistory();
+  });
+}
+
+function viewSale(id){
+  const s=sales.find(x=>x.id===id);if(!s)return;
+  const items=Array.isArray(s.items)?s.items:[];
+  const hasAddr=s.addr&&s.addr!=='-';
+  const hasMap=s.maplink&&s.maplink!=='-';
+  let html=`<div class="overlay"><div class="modal" style="width:340px;max-height:88vh;overflow-y:auto">
+    <h3>ใบเสร็จ ${s.id}</h3>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">ลูกค้า: ${s.customer} | วันที่: ${s.date}</div>
+    <table style="width:100%"><thead><tr><th>สินค้า</th><th>สี</th><th>จำนวน</th><th>ราคา</th></tr></thead><tbody>`;
+  html+=items.map(i=>`<tr>
+    <td>${i.name}</td>
+    <td><div style="width:12px;height:12px;border-radius:50%;background:${i.color||'#ccc'};border:1px solid var(--border);margin:0 auto"></div></td>
+    <td style="text-align:center">${i.qty}</td>
+    <td style="text-align:right">฿${(i.price*i.qty).toLocaleString()}</td>
+  </tr>`).join('');
+  html+=`</tbody></table>
+    <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
+    <div style="display:flex;justify-content:space-between;font-weight:600;font-size:14px;margin-bottom:8px">
+      <span>ยอดรวม</span><span style="color:var(--green)">฿${Number(s.total||0).toLocaleString()}</span>
+    </div>
+    ${hasAddr||hasMap?`<div style="background:var(--bl);border-radius:8px;padding:8px 10px;margin-bottom:8px">
+      <div style="font-size:11px;color:var(--blue);font-weight:600;margin-bottom:4px">📍 ที่อยู่จัดส่ง</div>
+      ${hasAddr?`<div style="font-size:12px;margin-bottom:4px">${s.addr}</div>`:''}
+      <div style="display:flex;gap:8px;align-items:center">
+        ${hasMap?`<a href="${s.maplink}" target="_blank" style="font-size:12px;color:var(--blue)">🗺 เปิดแผนที่</a>`:''}
+        <button class="btn btn-sm" style="background:var(--bl);color:var(--blue);border-color:#a8c8f0;font-size:11px" onclick="copySaleAddr('${s.id}')">📋 คัดลอก</button>
+      </div>
+    </div>`:''}
+    ${s.status==='รอดำเนินการ'?`<button class="btn btn-primary" style="width:100%;margin-bottom:6px"
+      onclick="markSalePaid('${s.id}')">✅ ชำระเรียบร้อย</button>`:''}
+    ${s.status==='รอดำเนินการ'?`<button class="btn" style="width:100%;margin-bottom:6px;color:var(--blue);border-color:#a8c8f0;background:var(--bl)"
+      onclick="markShipping('${s.id}')">🚚 เปลี่ยนเป็นระหว่างขนส่ง</button>`:''}
+    ${s.status==='ระหว่างขนส่ง'?`<button class="btn btn-primary" style="width:100%;margin-bottom:6px"
+      onclick="markDeliveredSale('${s.id}')">✅ ส่งของถึงแล้ว → ชำระแล้ว</button>`:''}
+    <div class="modal-btns"><button class="btn btn-primary" style="flex:1" onclick="closeOv()">ปิด</button></div>
+  </div></div>`;
+  document.getElementById('ov').innerHTML=html;
+}
+
+async function markSalePaid(id){
+  const s=sales.find(x=>x.id===id);if(!s)return;
+  s.status='ชำระแล้ว';
+  showSync('saving','💾 บันทึก...');
+  try{await api.upd('sales',id,{...s,items:JSON.stringify(s.items)});showSync('ok','✅ บันทึกแล้ว');saveCache();}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  renderHistory();
+}
+
+async function markShipping(id){
+  const s=sales.find(x=>x.id===id);if(!s)return;
+  s.status='ระหว่างขนส่ง';
+  showSync('saving','💾 บันทึก...');
+  try{await api.upd('sales',id,{...s,items:JSON.stringify(s.items)});showSync('ok','✅ อัปเดตแล้ว');saveCache();}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  closeOv();renderHistory();
+}
+
+async function markDeliveredSale(id){
+  const s=sales.find(x=>x.id===id);if(!s)return;
+  s.status='ชำระแล้ว';
+  showSync('saving','💾 บันทึก...');
+  try{await api.upd('sales',id,{...s,items:JSON.stringify(s.items)});showSync('ok','✅ ส่งถึงแล้ว');saveCache();}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  closeOv();renderHistory();
+}
+
+// ── Customers ──
+function fmtDate(d){
+  if(!d||d==='-') return '-';
+  try{
+    // dd/mm/yyyy (พ.ศ.)
+    if(typeof d==='string'&&d.includes('/')){
+      const p=d.split('/').map(Number);
+      if(p.length===3){
+        let yr=p[2]>2400?p[2]-543:p[2];
+        const dt=new Date(yr,p[1]-1,p[0]);
+        if(!isNaN(dt.getTime())) return dt.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
+      }
+    }
+    // ISO ที่ปีอาจเป็น พ.ศ. เช่น 2569-06-03T...
+    if(typeof d==='string'){
+      const m=d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if(m){
+        let yr=Number(m[1]);
+        if(yr>2400) yr-=543;
+        const dt=new Date(yr,Number(m[2])-1,Number(m[3]));
+        if(!isNaN(dt.getTime())) return dt.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
+      }
+    }
+    const dt=new Date(d);
+    if(!isNaN(dt.getTime())) return dt.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
+  }catch(e){}
+  return d;
+}
+function fmtPhone(p){
+  if(!p||p==='-') return '-';
+  const s=String(p).replace(/[^0-9]/g,'');
+  // เติม 0 ถ้าขึ้นต้นด้วย 6 หรือ 8 หรือ 9 (เบอร์ไทยที่หาย 0)
+  if(s.length===9&&(s[0]==='6'||s[0]==='8'||s[0]==='9')) return '0'+s;
+  return s.length>0?s:p;
+}
+function renderCustomers(){
+  const q=(document.getElementById('cust-search').value||'').toLowerCase();
+  const f=customers.filter(c=>c.name.toLowerCase().includes(q)||fmtPhone(c.phone).includes(q)||(c.phone||'').includes(q));
+  document.getElementById('cust-tbody').innerHTML=f.length
+    ?f.map(c=>`<tr class="cust-row" data-cid="${String(c.id).replace(/"/g,'')}" style="cursor:pointer">
+        <td>
+          <div style="font-weight:500">${c.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${fmtPhone(c.phone)}</div>
+        </td>
+        <td style="font-size:13px">${fmtPhone(c.phone)}</td>
+        <td>฿${Number(c.total||0).toLocaleString()}</td>
+        <td>${c.repairCount||0} ครั้ง</td>
+        <td style="font-size:12px;color:var(--text2)">${fmtDate(c.lastVisit)}</td>
+      </tr>`).join('')
+    :'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:16px">ไม่พบข้อมูล</td></tr>';
+  // ใช้ event delegation แทน inline onclick
+  document.querySelectorAll('.cust-row').forEach(row=>{
+    row.addEventListener('click',()=>viewCust(row.dataset.cid));
+  });
+}
+
+function viewCust(id){
+  const sid=String(id||'').trim();
+  const c=customers.find(x=>String(x.id||'').trim()===sid);
+  if(!c){
+    // fallback: หาด้วย name ถ้า id ไม่เจอ (กรณีข้อมูลเก่า)
+    console.warn('viewCust: id not found, id=',sid,'all ids=',customers.map(x=>x.id));
+    return;
+  }
+  const cs=sales.filter(s=>s.customer===c.name);
+  const cr=repairs.filter(r=>r.customer===c.name);
+  const totalSaleAmt=cs.reduce((s,x)=>s+Number(x.total||0),0);
+  const totalRepairAmt=cr.reduce((s,x)=>s+Number(x.price||0),0);
+
+  let html=`<div class="overlay"><div class="modal" style="width:420px;max-height:88vh;overflow-y:auto" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+      <div>
+        <h3 style="margin-bottom:4px">👤 ${c.name}</h3>
+        <div style="font-size:13px;color:var(--text2)">📞 ${fmtPhone(c.phone)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">เข้าล่าสุด: ${fmtDate(c.lastVisit)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <button onclick="closeOv()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);line-height:1">✕</button>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--text3)">ยอดซื้อรวม</div>
+          <div style="font-size:15px;font-weight:600;color:var(--green)">฿${totalSaleAmt.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">ค่าซ่อมรวม</div>
+          <div style="font-size:15px;font-weight:600;color:var(--orange)">฿${totalRepairAmt.toLocaleString()}</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div style="flex:1;background:var(--gl);border-radius:10px;padding:8px 12px;text-align:center">
+        <div style="font-size:20px;font-weight:600;color:var(--green)">${cs.length}</div>
+        <div style="font-size:11px;color:var(--gm)">ครั้งที่ซื้อ</div>
+      </div>
+      <div style="flex:1;background:var(--ol);border-radius:10px;padding:8px 12px;text-align:center">
+        <div style="font-size:20px;font-weight:600;color:var(--orange)">${cr.length}</div>
+        <div style="font-size:11px;color:var(--orange)">ครั้งที่ซ่อม</div>
+      </div>
+    </div>`;
+
+  // Sale history
+  if(cs.length){
+    html+=`<div class="slabel" style="margin-bottom:6px">🛒 ประวัติการซื้อ</div>`;
+    html+=cs.map(s=>{
+      const items=Array.isArray(s.items)?s.items:[];
+      if(!items.length) return `<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px"><div style="flex:1"><div style="font-size:13px;font-weight:600">ซื้อสินค้า</div><div style="font-size:11px;color:var(--text3)">${s.date}</div></div><div style="font-size:13px;font-weight:600;color:var(--green)">฿${Number(s.total||0).toLocaleString()}</div></div>`;
+      return items.map(i=>`
+        <div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+          ${i.color?`<div style="width:24px;height:24px;border-radius:50%;background:${i.color};border:1px solid rgba(0,0,0,.15);flex-shrink:0"></div>`:''}
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.name}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">${i.color?colorName(i.color)+' · ':''}${s.date}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:13px;font-weight:600;color:var(--green)">฿${Number(i.price||0).toLocaleString()}</div>
+            ${i.qty>1?`<div style="font-size:10px;color:var(--text3)">×${i.qty}</div>`:''}
+          </div>
+        </div>`).join('');
+    }).join('');
+  }
+
+  // Repair history
+  if(cr.length){
+    html+=`<div class="slabel" style="margin-top:14px;margin-bottom:6px">🔧 ประวัติการซ่อม</div>`;
+    html+=cr.map(r=>`
+      <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:500">${r.id} · <strong>${r.device}</strong></span>
+          <span class="badge ${RBADGE[r.status]||''}" style="font-size:10px">${r.status}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px">${r.desc.substring(0,60)}${r.desc.length>60?'...':''}</div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:2px">
+          <span>รับคัน: ${fmtDateTime(r.dateIn)}</span>
+          <span style="font-weight:600;color:var(--orange)">${r.price>0?'฿'+Number(r.price).toLocaleString():'-'}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  if(!cs.length&&!cr.length){
+    html+=`<div style="text-align:center;color:var(--text3);font-size:13px;padding:16px">ยังไม่มีประวัติ</div>`;
+  }
+
+  html+=`<div style="margin-top:14px;display:flex;gap:8px">
+    <button class="btn btn-danger btn-sm" style="padding:6px 12px" onclick="requirePin('ลบลูกค้า ${c.name}',()=>deleteCustomer(${c.id}))">🗑 ลบ</button>
+    <button class="btn btn-primary" style="flex:1;padding:10px;font-size:14px" onclick="closeOv()">ปิด</button>
+  </div></div></div>`;
+  document.getElementById('ov').innerHTML=html;
+}
+
+async function deleteCustomer(id){
+  customers=customers.filter(x=>x.id!=id);
+  showSync('saving','💾 กำลังลบ...');
+  try{await api.del('customers',id);showSync('ok','✅ ลบลูกค้าแล้ว');}
+  catch{showSync('err','❌ ไม่สำเร็จ');}
+  closeOv();renderCustomers();updateCustList();
+}
+
+async function quickAddCust(){
+  // ใช้งานผ่าน checkout popup แทน
+}
+
+function showAddCustModal(){
+  document.getElementById('ov').innerHTML=`<div class="overlay"><div class="modal">
+    <h3>+ เพิ่มลูกค้าใหม่</h3>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <input id="mc-name" placeholder="ชื่อลูกค้า *" style="width:100%">
+      <input id="mc-phone" placeholder="เบอร์โทรศัพท์" style="width:100%">
+    </div>
+    <div class="modal-btns">
+      <button class="btn" style="flex:1" onclick="closeOv()">ยกเลิก</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveNewCust()">+ เพิ่ม</button>
+    </div>
+  </div></div>`;
+  setTimeout(()=>{const el=document.getElementById('mc-name');if(el)el.focus();},100);
+}
+
+async function saveNewCust(){
+  const name=document.getElementById('mc-name').value.trim();
+  const phone=document.getElementById('mc-phone').value.trim();
+  if(!name){alert('กรุณากรอกชื่อ');return;}
+  if(customers.find(c=>c.name===name)){alert('มีชื่อนี้แล้ว');return;}
+  const nc={id:Date.now(),name,phone:phone||'-',total:0,repairCount:0,lastVisit:'-'};
+  customers.push(nc);
+  showSync('saving','💾 บันทึก...');
+  try{await api.save('customers',nc);showSync('ok','✅ เพิ่มแล้ว');}catch{showSync('err','❌ ไม่สำเร็จ');}
+  updateCustList();closeOv();renderCustomers();
+}
+
+function updateCustList(){
+  const opts=customers.map(c=>`<option value="${c.name}">`).join('');
+  const dl2=document.getElementById('cust-list2');if(dl2)dl2.innerHTML=opts;
+}
+function updateRepairCustList(){const dl=document.getElementById('cust-list2');if(dl)dl.innerHTML=customers.map(c=>`<option value="${c.name}">`).join('');}
+
+function onRepairCustInput(name){
+  const c=customers.find(x=>x.name===name);
+  const phoneSug=document.getElementById('rp-phone-suggestions');
+  const deviceSug=document.getElementById('rp-device-suggestions');
+  if(!c){if(phoneSug)phoneSug.innerHTML='';if(deviceSug)deviceSug.innerHTML='';return;}
+
+  // หาที่อยู่/ลิงก์ล่าสุดจาก sales หรือ repairs ของลูกค้านี้
+  let lastAddr='',lastMap='';
+  const allRecords=[...sales.filter(s=>s.customer===name),...repairs.filter(r=>r.customer===name)];
+  allRecords.forEach(rec=>{
+    if(rec.addr&&rec.addr!=='-'&&!lastAddr) lastAddr=rec.addr;
+    if(rec.maplink&&rec.maplink!=='-'&&!lastMap) lastMap=rec.maplink;
+  });
+  const phone=c.phone&&c.phone!=='-'?c.phone:'';
+
+  // กล่องข้อมูลลูกค้าให้กดเลือก
+  if(phoneSug){
+    let html='';
+    if(phone||lastAddr||lastMap){
+      html=`<div style="width:100%;background:var(--bl);border-radius:10px;padding:10px 12px;border:1px solid #a8c8f0">
+        <div style="font-size:11px;color:var(--blue);font-weight:600;margin-bottom:6px">📋 ข้อมูลเดิมของ ${name}</div>
+        ${phone?`<div style="font-size:13px;margin-bottom:3px">📞 ${fmtPhone(phone)}</div>`:''}
+        ${lastAddr?`<div style="font-size:12px;color:var(--text2);margin-bottom:3px">📍 ${lastAddr}</div>`:''}
+        ${lastMap?`<div style="font-size:12px;color:var(--blue);margin-bottom:6px">🗺 มีลิงก์แผนที่</div>`:''}
+        <button class="btn btn-sm btn-primary" style="width:100%;font-size:12px" 
+          onclick="fillRepairCustData('${(phone||'').replace(/'/g,'')}','${(lastAddr||'').replace(/'/g,'').replace(/\n/g,' ')}','${(lastMap||'').replace(/'/g,'')}')">
+          ✓ ใช้ข้อมูลนี้
+        </button>
+      </div>`;
+    }
+    phoneSug.innerHTML=html;
+  }
+
+  // รถที่เคยซื้อ
+  const custSales=sales.filter(s=>s.customer===name);
+  const vehMap=[];
+  custSales.forEach(s=>{
+    const items=Array.isArray(s.items)?s.items:[];
+    items.forEach(i=>{
+      if(i.name){
+        const key=i.name+(i.color||'');
+        if(!vehMap.find(x=>x.key===key)) vehMap.push({key,name:i.name,color:i.color||'',cname:i.color?colorName(i.color):''});
+      }
+    });
+  });
+  if(deviceSug){
+    deviceSug.innerHTML=vehMap.map(v=>`
+      <button class="btn btn-sm" style="background:var(--gl);color:var(--green);border-color:#9ed4b8;display:inline-flex;align-items:center;gap:5px"
+        onclick="selectRepairVehicle('${v.name}','${v.color}','${v.cname}')">
+        ${v.color?`<span style="width:10px;height:10px;border-radius:50%;background:${v.color};border:1px solid rgba(0,0,0,.2);flex-shrink:0"></span>`:''}
+        ${v.name}${v.cname?' · '+v.cname:''}
+      </button>`).join('');
+  }
+}
+
+function fillRepairCustData(phone,addr,maplink){
+  if(phone){const el=document.getElementById('rp-phone');if(el)el.value=phone;}
+  if(addr){const el=document.getElementById('rp-addr');if(el)el.value=addr;}
+  if(maplink){const el=document.getElementById('rp-maplink');if(el)el.value=maplink;}
+  showSync('ok','✅ ดึงข้อมูลแล้ว');
+}
+
+function selectRepairVehicle(name,color,cname){
+  document.getElementById('rp-device').value=name;
+  document.getElementById('rp-color').value=cname||color;
+  const prev=document.getElementById('rp-color-preview');
+  if(prev&&color) prev.style.background=color;
+}
+
+function syncRepairColorText(val){
+  const nc=NAMED_COLORS.find(x=>x.name===val);
+  const prev=document.getElementById('rp-color-preview');
+  if(prev) prev.style.background=nc?nc.hex:(val.startsWith('#')?val:'#ddd');
+}
+
+async function markDelivered(id){
+  const r=repairs.find(x=>x.id===id);if(!r)return;
+  const deliveredDate=new Date().toLocaleString('th-TH',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  r.status='ส่งคืนแล้ว';
+  r.dateOut=deliveredDate;
+  const c=customers.find(x=>x.name===r.customer);
+  if(c)c.lastVisit=today();
+  showSync('saving','💾 บันทึก...');
+  try{
+    const ps=[api.upd('repairs',id,r)];
+    if(c)ps.push(api.upd('customers',c.id,c));
+    await Promise.all(ps);
+    showSync('ok','✅ บันทึกวันส่งมอบแล้ว');
+  }catch{showSync('err','❌ ไม่สำเร็จ');}
+  closeOv();renderRepairs();
+}
+
+// ── Repairs ──
+function todayCE(){
+  // คืนวันที่ปัจจุบันเป็น ค.ศ. แบบ YYYY-MM-DD (ไม่ใช่ พ.ศ.)
+  const n=new Date();
+  const pad=x=>String(x).padStart(2,'0');
+  return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`;
+}
+function nowDateTimeLocal(){
+  const n=new Date();
+  const pad=x=>String(x).padStart(2,'0');
+  return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}T${pad(n.getHours())}:${pad(n.getMinutes())}`;
+}
+function fmtDateTime(val){
+  if(!val||val==='-') return '-';
+  try{
+    let v=val;
+    // ถ้าปีนำหน้าเป็น พ.ศ. (>2400) แปลงเป็น ค.ศ.
+    if(typeof v==='string'){
+      const m=v.match(/^(\d{4})(-\d{2}-\d{2}.*)/);
+      if(m&&Number(m[1])>2400) v=(Number(m[1])-543)+m[2];
+    }
+    const d=new Date(v);
+    if(isNaN(d.getTime())) return val;
+    return d.toLocaleString('th-TH',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  }catch(e){return val;}
+}
+
+function showAddRepairModal(){
+  const custOpts=customers.map(c=>`<option value="${c.name}">`).join('');
+  document.getElementById('ov').innerHTML=`<div class="overlay" style="align-items:flex-end" data-no-close="1"><div class="modal" style="width:100%;max-width:480px;border-radius:18px 18px 0 0;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h3 style="font-size:16px">🔧 เพิ่มงานซ่อมใหม่</h3>
+      <button onclick="closeOv()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);line-height:1">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <!-- ลูกค้า -->
+      <div>
+        <label class="form-label">ลูกค้า *</label>
+        <input id="rp-cust" list="cust-list2" placeholder="พิมพ์ชื่อลูกค้า..." style="width:100%" oninput="onRepairCustInput(this.value)">
+        <datalist id="cust-list2">${custOpts}</datalist>
+      </div>
+      <!-- เบอร์โทร -->
+      <div>
+        <label class="form-label">เบอร์โทร</label>
+        <div id="rp-phone-suggestions" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px"></div>
+        <input id="rp-phone" placeholder="เบอร์ติดต่อ" style="width:100%">
+      </div>
+      <!-- ที่อยู่ + Google Maps -->
+      <div>
+        <label class="form-label">ที่อยู่ลูกค้า</label>
+        <textarea id="rp-addr" placeholder="บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด..." style="width:100%;min-height:60px"></textarea>
+        <input id="rp-maplink" placeholder="ลิงก์ Google Maps (วางได้เลย)" style="width:100%;margin-top:5px;font-size:12px">
+      </div>
+      <!-- คัน/รุ่น -->
+      <div>
+        <label class="form-label">คัน / รุ่นที่ซ่อม *</label>
+        <div id="rp-device-suggestions" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px"></div>
+        <input id="rp-device" placeholder="หรือพิมพ์รุ่น/คันเองได้..." style="width:100%">
+      </div>
+      <!-- สีรถ -->
+      <div>
+        <label class="form-label">สีรถ</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div id="rp-color-preview" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:#ddd;flex-shrink:0"></div>
+          <input id="rp-color" placeholder="เช่น น้ำเงิน, แดง, เทา..." style="flex:1" oninput="syncRepairColorText(this.value)">
+        </div>
+      </div>
+      <!-- ราคา -->
+      <div>
+        <label class="form-label">ราคาค่าซ่อม (฿)</label>
+        <input id="rp-price" type="number" min="0" placeholder="กรอกหลังซ่อมเสร็จได้" style="width:100%">
+      </div>
+      <!-- อาการ -->
+      <div>
+        <label class="form-label">อาการ / รายละเอียด *</label>
+        <textarea id="rp-desc" placeholder="อธิบายปัญหา..." style="width:100%;min-height:70px"></textarea>
+      </div>
+      <!-- หมายเหตุ -->
+      <div>
+        <label class="form-label">หมายเหตุ</label>
+        <input id="rp-note" placeholder="หมายเหตุเพิ่มเติม" style="width:100%">
+      </div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <button class="btn" style="flex:1" onclick="closeOv()">ยกเลิก</button>
+      <button class="btn btn-orange" style="flex:2;font-size:14px;font-weight:600" onclick="addRepair()">🔧 บันทึกงานซ่อม</button>
+    </div>
+  </div></div>`;
+}
+
+function copyAddrInfo(){
+  const name=document.getElementById('rp-cust').value.trim();
+  const phone=document.getElementById('rp-phone').value.trim();
+  const addr=document.getElementById('rp-addr').value.trim();
+  const map=document.getElementById('rp-maplink').value.trim();
+  const lines=[name&&`ชื่อ: ${name}`,phone&&`โทร: ${phone}`,addr&&`ที่อยู่: ${addr}`,map&&`แผนที่: ${map}`].filter(Boolean).join('\n');
+  if(!lines){alert('ยังไม่มีข้อมูลที่จะคัดลอก');return;}
+  navigator.clipboard.writeText(lines).then(()=>{
+    showSync('ok','✅ คัดลอกแล้ว!');
+  }).catch(()=>{
+    // fallback
+    const ta=document.createElement('textarea');ta.value=lines;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+    showSync('ok','✅ คัดลอกแล้ว!');
+  });
+}
+
+async function addRepair(){
+  const customer=document.getElementById('rp-cust').value.trim();
+  const phone=document.getElementById('rp-phone').value.trim();
+  const addr=document.getElementById('rp-addr')?document.getElementById('rp-addr').value.trim():'';
+  const maplink=document.getElementById('rp-maplink')?document.getElementById('rp-maplink').value.trim():'';
+  const device=document.getElementById('rp-device').value.trim();
+  const vehicleColor=document.getElementById('rp-color').value.trim();
+  const desc=document.getElementById('rp-desc').value.trim();
+  const price=parseFloat(document.getElementById('rp-price').value)||0;
+  const dateIn=nowDateTimeLocal();
+  const note=document.getElementById('rp-note').value.trim();
+  if(!customer||!device||!desc){alert('กรุณากรอก ลูกค้า, คัน/รุ่น และอาการ');return;}
+  const rpId='RP'+String(nextRpId++).padStart(3,'0');
+  const rep={id:rpId,customer,phone:phone||'-',addr:addr||'-',maplink:maplink||'-',device,vehicleColor:vehicleColor||'-',desc,price,dateIn,dateOut:'-',note,status:'รอเช็คอาการ',created:today()};
+  repairs.unshift(rep);
+  const promises=[api.save('repairs',rep)];
+  if(!customers.find(cx=>cx.name===customer)){
+    const nc={id:Date.now(),name:customer,phone:phone||'-',total:0,repairCount:1,lastVisit:today()};
+    customers.push(nc);promises.push(api.save('customers',nc));
+  }else{
+    const cx=customers.find(cx=>cx.name===customer);
+    cx.repairCount=(parseInt(cx.repairCount)||0)+1;if(phone)cx.phone=phone;
+    promises.push(api.upd('customers',cx.id,cx));
+  }
+  showSync('saving','💾 บันทึก...');
+  try{await Promise.all(promises);showSync('ok','✅ บันทึกแล้ว');}catch{showSync('err','❌ ไม่สำเร็จ');}
+  saveCache();closeOv();renderRepairs();updateRepairCustList();updateCustList();
+  alert(`บันทึกงานซ่อม ${rpId} เรียบร้อย`);
+}
+
+function setRF(f){
+  repairFilter=f;
+  document.getElementById('sf-all').className='status-btn';
+  RSTAT.forEach(s=>{const el=document.getElementById('sf-'+s);if(el)el.className='status-btn';});
+  if(f==='all')document.getElementById('sf-all').className='status-btn s-all';
+  else{const el=document.getElementById('sf-'+f);if(el)el.className='status-btn '+RFC[f];}
+  renderRepairs();
+}
+
+function renderRepairs(){
+  const q=(document.getElementById('repair-search').value||'').toLowerCase();
+  const active=repairs.filter(r=>!HIDDEN.includes(r.status));
+  document.getElementById('sfc-all').textContent=active.length;
+  RSTAT.forEach(s=>{const el=document.getElementById('sfc-'+s);if(el)el.textContent=repairs.filter(r=>r.status===s).length;});
+  let filtered=repairs.filter(r=>{
+    const mf=repairFilter==='all'?!HIDDEN.includes(r.status):r.status===repairFilter;
+    const mq=!q||r.customer.toLowerCase().includes(q)||r.device.toLowerCase().includes(q)||r.id.toLowerCase().includes(q);
+    return mf&&mq;
+  });
+  const el=document.getElementById('repairs-list');
+  if(!filtered.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">ไม่พบงานซ่อม</div>';return;}
+  el.innerHTML=filtered.map(r=>`
+    <div class="repair-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;cursor:pointer" onclick="viewRepair('${r.id}')">
+        <div>
+          <div style="font-size:11px;color:var(--text3);font-weight:600">${r.id} · รับคัน ${fmtDateTime(r.dateIn)}</div>
+          <div style="font-size:14px;font-weight:600;margin:2px 0">${r.device}${r.vehicleColor&&r.vehicleColor!=='-'?` <span style="font-size:11px;font-weight:400;color:var(--text2)">(${r.vehicleColor})</span>`:''}</div>
+          <div style="font-size:12px;color:var(--text2)">👤 ${r.customer}${r.phone&&r.phone!=='-'?' · '+fmtPhone(r.phone):''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <span class="badge ${RBADGE[r.status]||'badge-warn'}">${r.status}</span>
+          ${r.status==='รอเช็คอาการ'?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();requirePin('ยกเลิกงานซ่อม',()=>quickCancel('${r.id}'))">ยกเลิก</button>`:''}
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px;border-top:1px solid var(--border);padding-top:6px;cursor:pointer" onclick="viewRepair('${r.id}')">${r.desc}</div>
+      ${r.status==='รอเช็คอาการ'&&r.parts?`<div style="font-size:11px;color:var(--blue);margin-top:4px">🔩 อะไหล่: ${r.parts}</div>`:''}
+      <div style="display:flex;justify-content:space-between;margin-top:6px;cursor:pointer" onclick="viewRepair('${r.id}')">
+        <span style="font-size:13px;font-weight:600;color:var(--green)">${r.price>0?'฿'+Number(r.price).toLocaleString():'ยังไม่ระบุราคา'}</span>
+        <span style="font-size:11px;color:var(--text3)">${r.dateOut&&r.dateOut!=='-'?'ส่งมอบ: '+r.dateOut:''}</span>
+      </div>
+    </div>`).join('');
+}
+
+async function quickCancel(id){
+  if(!confirm('ยกเลิกงานซ่อมนี้?'))return;
+  const r=repairs.find(x=>x.id===id);r.status='ยกเลิก';
+  showSync('saving','💾 อัปเดต...');
+  try{await api.upd('repairs',id,r);showSync('ok','✅ ยกเลิกแล้ว');}catch{showSync('err','❌ ไม่สำเร็จ');}
+  renderRepairs();
+}
+
+function viewRepair(id){
+  const r=repairs.find(x=>x.id===id);if(!r)return;
+  const so=RSTAT.map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('');
+  const hasAddr=(r.addr&&r.addr!=='-');
+  const hasMap=(r.maplink&&r.maplink!=='-');
+  const addrBlock=hasAddr||hasMap?`
+    <div style="background:var(--bl);border-radius:8px;padding:8px 10px;margin-bottom:6px">
+      <div style="font-size:11px;color:var(--blue);font-weight:600;margin-bottom:4px">📍 ที่อยู่ลูกค้า</div>
+      ${hasAddr?`<div style="font-size:13px;color:var(--text);line-height:1.6">${r.addr}</div>`:''}
+      ${hasMap?`<a href="${r.maplink}" target="_blank" style="font-size:12px;color:var(--blue);display:inline-block;margin-top:4px">🗺 เปิด Google Maps</a>`:''}
+      <button class="btn btn-sm" style="margin-top:6px;background:var(--bl);color:var(--blue);border-color:#a8c8f0;width:100%" onclick="copyAddrInfoFromView('${id}')">📋 คัดลอกที่อยู่+แผนที่</button>
+    </div>`:'';
+  document.getElementById('ov').innerHTML=`<div class="overlay" style="align-items:flex-end"><div class="modal" style="width:100%;max-width:480px;border-radius:18px 18px 0 0;max-height:92vh;overflow-y:auto;padding:18px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 style="font-size:15px">🔧 งานซ่อม ${r.id}</h3>
+      <button onclick="closeOv()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:13px;margin-bottom:10px">
+      <div><span style="color:var(--text3);font-size:11px">ลูกค้า</span><br><strong>${r.customer}</strong></div>
+      <div><span style="color:var(--text3);font-size:11px">เบอร์</span><br>${fmtPhone(r.phone)}</div>
+      <div><span style="color:var(--text3);font-size:11px">คัน/รุ่น</span><br><strong>${r.device}</strong>${r.vehicleColor&&r.vehicleColor!=='-'?`<br><span style="font-size:12px;color:var(--text2)">${r.vehicleColor}</span>`:''}</div>
+      <div><span style="color:var(--text3);font-size:11px">ค่าซ่อม</span><br><strong style="color:var(--green)">${r.price>0?'฿'+Number(r.price).toLocaleString():'ยังไม่ระบุ'}</strong></div>
+      <div><span style="color:var(--text3);font-size:11px">รับคันเมื่อ</span><br><span style="font-size:12px">${fmtDateTime(r.dateIn)}</span></div>
+      <div><span style="color:var(--text3);font-size:11px">ส่งคืนเมื่อ</span><br>${r.dateOut&&r.dateOut!=='-'?`<span style="font-size:12px;font-weight:600;color:var(--purple)">${fmtDateTime(r.dateOut)}</span>`:'<span style="color:var(--text3);font-size:12px">รอลูกค้ามารับ</span>'}</div>
+    </div>
+    ${addrBlock}
+    <div style="font-size:13px;margin-bottom:6px"><span style="color:var(--text3);font-size:11px">อาการ</span><br>${r.desc}</div>
+    ${r.parts?`<div style="font-size:13px;margin-bottom:6px"><span style="color:var(--text3);font-size:11px">🔩 อะไหล่ที่เปลี่ยน</span><br><span style="color:var(--blue)">${r.parts}</span></div>`:''}
+    ${r.note?`<div style="font-size:12px;color:var(--text2);margin-bottom:6px"><span style="color:var(--text3);font-size:11px">หมายเหตุ</span><br>${r.note}</div>`:''}
+    <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div>
+        <label class="form-label">อัปเดตสถานะ</label>
+        <select id="edit-status" style="width:100%"><option value="">-- ไม่เปลี่ยน --</option>${so}</select>
+      </div>
+      <div>
+        <label class="form-label">🔩 อะไหล่ที่เปลี่ยน (ตัดสต็อกอัตโนมัติ)</label>
+        <div id="used-parts-list-${r.id}" style="display:flex;flex-direction:column;gap:5px;margin-bottom:6px"></div>
+        <div style="display:flex;gap:6px">
+          <select id="part-select-${r.id}" style="flex:1;font-size:12px">
+            <option value="">-- เลือกอะไหล่ --</option>
+            ${parts.filter(p=>p.stock>0).map(p=>`<option value="${p.id}">${p.name} (เหลือ ${p.stock}) ฿${Number(p.price).toLocaleString()}</option>`).join('')}
+          </select>
+          <button class="btn btn-sm btn-primary" onclick="addUsedPart('${r.id}')">+ เพิ่ม</button>
+        </div>
+        <input type="hidden" id="edit-parts" value="${r.parts||''}">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">หรือพิมพ์เอง: <input id="edit-parts-manual" placeholder="อะไหล่อื่นๆ" style="font-size:12px;width:100%;margin-top:3px" value=""></div>
+      </div>
+      <div>
+        <label class="form-label">ค่าซ่อม (฿)</label>
+        <input id="edit-price" type="number" value="${r.price||''}" placeholder="0" style="width:100%">
+      </div>
+      <div>
+        <label class="form-label">ที่อยู่ลูกค้า (แก้ได้)</label>
+        <textarea id="edit-addr" style="width:100%;min-height:50px">${r.addr&&r.addr!=='-'?r.addr:''}</textarea>
+      </div>
+      <div>
+        <label class="form-label">ลิงก์ Google Maps (แก้ได้)</label>
+        <input id="edit-maplink" value="${r.maplink&&r.maplink!=='-'?r.maplink:''}" placeholder="https://maps.google.com/..." style="width:100%;font-size:12px">
+      </div>
+      <div>
+        <label class="form-label">หมายเหตุเพิ่มเติม</label>
+        <input id="edit-note" placeholder="หมายเหตุ..." style="width:100%">
+      </div>
+    </div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn btn-danger" style="flex:1" onclick="requirePin('ลบงานซ่อม',()=>deleteRepair('${r.id}'))">🗑 ลบ</button>
+      <button class="btn" style="flex:1" onclick="closeOv()">ปิด</button>
+      <button class="btn btn-primary" style="flex:1" onclick="requirePin('แก้ไขงานซ่อม',()=>updateRepair('${r.id}'))">💾 บันทึก</button>
+    </div>
+    ${r.status!=='ส่งคืนแล้ว'&&r.status!=='ยกเลิก'?`
+    <button class="btn" style="width:100%;margin-top:8px;background:var(--pl);color:var(--purple);border-color:#c4a8e8;font-weight:600;font-size:14px;padding:10px" onclick="requirePin('ยืนยันลูกค้ามารับแล้ว',()=>markDelivered('${r.id}'))">📦 ลูกค้ามารับรถแล้ว</button>`:''}
+    ${r.status==='ส่งคืนแล้ว'?`<button class="btn btn-orange" style="width:100%;margin-top:6px" onclick="printRepair('${r.id}')">🖨 พิมพ์ใบแจ้งซ่อม</button>`:''}
+  </div></div>`;
+}
+
+// อะไหล่ที่ใช้ในงานซ่อมปัจจุบัน {repairId: [{id,name,price}]}
+let usedPartsBuffer={};
+function addUsedPart(rid){
+  const sel=document.getElementById('part-select-'+rid);
+  if(!sel||!sel.value)return;
+  const pid=sel.value;
+  const part=parts.find(p=>String(p.id)===String(pid));
+  if(!part)return;
+  if(part.stock<=0){alert('อะไหล่นี้หมดสต็อก');return;}
+  if(!usedPartsBuffer[rid]) usedPartsBuffer[rid]=[];
+  usedPartsBuffer[rid].push({id:part.id,name:part.name,price:part.price});
+  sel.value='';
+  renderUsedParts(rid);
+}
+function removeUsedPart(rid,idx){
+  if(usedPartsBuffer[rid]) usedPartsBuffer[rid].splice(idx,1);
+  renderUsedParts(rid);
+}
+function renderUsedParts(rid){
+  const el=document.getElementById('used-parts-list-'+rid);
+  if(!el)return;
+  const list=usedPartsBuffer[rid]||[];
+  el.innerHTML=list.map((p,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;background:var(--bl);border-radius:6px;padding:5px 8px">
+      <span style="flex:1;font-size:12px">🔩 ${p.name} · ฿${Number(p.price).toLocaleString()}</span>
+      <button onclick="removeUsedPart('${rid}',${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">✕</button>
+    </div>`).join('');
+}
+
+function copyAddrInfoFromView(id){
+  const r=repairs.find(x=>x.id===id);if(!r)return;
+  const veh=r.device?`${r.device}${r.vehicleColor&&r.vehicleColor!=='-'?' สี'+r.vehicleColor:''}`:'';
+  const lines=[
+    r.customer&&`ชื่อ: ${r.customer}`,
+    r.phone&&r.phone!=='-'&&`โทร: ${fmtPhone(r.phone)}`,
+    veh&&`รถ: ${veh}`,
+    r.addr&&r.addr!=='-'&&`ที่อยู่: ${r.addr}`,
+    r.maplink&&r.maplink!=='-'&&`แผนที่: ${r.maplink}`
+  ].filter(Boolean).join('\n');
+  navigator.clipboard.writeText(lines).then(()=>showSync('ok','✅ คัดลอกแล้ว!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=lines;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+    showSync('ok','✅ คัดลอกแล้ว!');
+  });
+}
+
+async function updateRepair(id){
+  const r=repairs.find(x=>x.id===id);
+  const newStatus=document.getElementById('edit-status').value;
+  if(newStatus) r.status=newStatus;
+  const n=document.getElementById('edit-note').value.trim();
+  const manualParts=document.getElementById('edit-parts-manual')?document.getElementById('edit-parts-manual').value.trim():'';
+  const price=document.getElementById('edit-price').value;
+  const addr=document.getElementById('edit-addr')?document.getElementById('edit-addr').value.trim():'';
+  const maplink=document.getElementById('edit-maplink')?document.getElementById('edit-maplink').value.trim():'';
+
+  // อะไหล่ที่เลือกจากสต็อก → ตัดสต็อก
+  const usedList=usedPartsBuffer[id]||[];
+  const partSavePromises=[];
+  let partsText=[];
+  usedList.forEach(up=>{
+    const pt=parts.find(p=>String(p.id)===String(up.id));
+    if(pt){
+      // ตัดจากสาขาที่มีสต็อก (วัดเขาก่อน)
+      if((parseInt(pt.stockA)||0)>0){pt.stockA=(parseInt(pt.stockA)||0)-1;}
+      else if((parseInt(pt.stockB)||0)>0){pt.stockB=(parseInt(pt.stockB)||0)-1;}
+      pt.stock=(parseInt(pt.stockA)||0)+(parseInt(pt.stockB)||0);
+      partSavePromises.push(api.upd('parts',pt.id,pt));
+    }
+    partsText.push(up.name);
+  });
+  if(manualParts) partsText.push(manualParts);
+  // รวมกับอะไหล่เดิม
+  const allParts=[r.parts,...partsText].filter(Boolean).join(', ');
+  if(partsText.length) r.parts=allParts;
+
+  if(price!=='') r.price=parseFloat(price)||0;
+  if(n) r.note=(r.note?r.note+' | ':'')+n;
+  if(addr) r.addr=addr;
+  if(maplink) r.maplink=maplink;
+  if(r.status==='ส่งคืนแล้ว'){const cx=customers.find(cx=>cx.name===r.customer);if(cx)cx.lastVisit=today();}
+  showSync('saving','💾 บันทึก...');
+  try{
+    await Promise.all([api.upd('repairs',id,r),...partSavePromises]);
+    showSync('ok','✅ อัปเดตแล้ว');
+    saveCache();
+  }catch{showSync('err','❌ ไม่สำเร็จ');}
+  delete usedPartsBuffer[id];
+  closeOv();renderRepairs();
+}
+
+async function deleteRepair(id){
+  if(!confirm('ลบงานซ่อมนี้?'))return;
+  repairs=repairs.filter(x=>x.id!==id);
+  showSync('saving','💾 ลบ...');
+  try{await api.del('repairs',id);showSync('ok','✅ ลบแล้ว');}catch{showSync('err','❌ ไม่สำเร็จ');}
+  closeOv();renderRepairs();
+}
+
+function printRepair(id){
+  const r=repairs.find(x=>x.id===id);if(!r)return;
+  document.getElementById('ov').innerHTML=`<div class="overlay"><div class="rbox" style="width:300px">
+    <h3>🔧 ใบแจ้งซ่อม</h3>
+    <div class="rsub">เลขที่: <strong>${r.id}</strong><br>วันรับคัน: ${r.dateIn}<br>ลูกค้า: ${r.customer} · ${r.phone}</div>
+    <hr class="rdiv">
+    <div class="rrow"><span>คัน/รุ่น</span><span><strong>${r.device}</strong></span></div>
+    <div style="font-size:12px;color:var(--text2);margin:5px 0">อาการ: ${r.desc}</div>
+    ${r.note?`<div style="font-size:11px;color:var(--text3)">หมายเหตุ: ${r.note}</div>`:''}
+    <hr class="rdiv">
+    <div class="rrow" style="font-weight:600;font-size:14px"><span>ค่าบริการ</span><span style="color:var(--green)">฿${Number(r.price||0).toLocaleString()}</span></div>
+    <div class="rrow"><span>สถานะ</span><span class="badge ${RBADGE[r.status]||''}">${r.status}</span></div>
+    ${r.dateOut&&r.dateOut!=='-'?`<div class="rrow"><span>นัดรับคืน</span><span>${r.dateOut}</span></div>`:''}
+    <div class="modal-btns">
+      <button class="btn" style="flex:1" onclick="window.print()">🖨 พิมพ์</button>
+      <button class="btn btn-primary" style="flex:1" onclick="closeOv()">ปิด</button>
+    </div>
+  </div></div>`;
+}
+
+function exportCSV(){
+  let csv='\uFEFFเลขที่,ลูกค้า,วันที่,ยอดชำระ,สถานะ\n';
+  sales.forEach(s=>{csv+=`${s.id},${s.customer},${s.date},${s.total},${s.status}\n`;});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='sales.csv';a.click();
+}
+
+function updateClock(){
+  const now=new Date();
+  const el=document.getElementById('clock');
+  if(el)el.textContent=now.toLocaleDateString('th-TH',{weekday:'short',month:'short',day:'numeric'})+' '+now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(updateClock,1000);updateClock();
+// rp-datein is inside modal, set on open
+
+function checkLogin(){
+  var pin=document.getElementById('login-pin').value;
+  if(pin==='475'){
+    window._tabInitialized=false; // reset เพื่อให้ switchTab('pos') ทำงาน
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('loading').style.display='flex';
+    setAuth();
+    loadAll();
+  } else {
+    document.getElementById('login-err').style.display='block';
+    document.getElementById('login-pin').value='';
+    document.getElementById('login-pin').focus();
+  }
+}
+
+// Auth with 2-hour expiry
+var AUTH_DURATION=2*60*60*1000;
+var AUTH_VERSION='v3'; // เพิ่มทุกครั้งที่แก้ไข JS ใหญ่
+function checkAuth(){
+  var auth=localStorage.getItem('pos_auth');
+  if(!auth) return false;
+  try{
+    var data=JSON.parse(auth);
+    if(data.ver!==AUTH_VERSION){localStorage.removeItem('pos_auth');return false;}
+    if(Date.now()-data.time<AUTH_DURATION) return true;
+    localStorage.removeItem('pos_auth');
+    return false;
+  }catch(e){return false;}
+}
+function setAuth(){
+  localStorage.setItem('pos_auth',JSON.stringify({time:Date.now(),ver:AUTH_VERSION}));
+}
+
+// ── Boot ──
+try{
+  if(checkAuth()){
+    window._tabInitialized=false;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('loading').style.display='flex';
+    loadAll();
+  } else {
+    setTimeout(function(){
+      var el=document.getElementById('login-pin');
+      if(el)el.focus();
+    },200);
+  }
+}catch(err){
+  // ถ้า error ให้แสดง login screen เสมอ
+  localStorage.removeItem('pos_auth');
+  document.getElementById('login-screen').style.display='flex';
+}
+</script>
+</body>
+</html>
